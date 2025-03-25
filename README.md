@@ -1,2 +1,2 @@
 # project2
-This is my 2nd project
+Project 2: FullStack app to visualize public water pipelines
