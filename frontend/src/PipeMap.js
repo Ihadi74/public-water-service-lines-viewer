@@ -18,10 +18,10 @@ function getAgeColor(installedDate) {
   // Legend dot style
   const legendDotStyle = {
     display: 'inline-block',
-    width: '12px',
-    height: '12px',
+    width: '16px',
+    height: '16px',
     borderRadius: '50%',
-    marginRight: '8px'
+    marginRight: '10px'
   };
   
   
@@ -75,6 +75,7 @@ const PipeMap = ({ pipes }) => {
             center={[51.045, -114.057]}
             zoom={14}
             scrollWheelZoom={false}
+            dragging={true}
             style={{ height: '600px', width: '100%' }}
           >
             <TileLayer

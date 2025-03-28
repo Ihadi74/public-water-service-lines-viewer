@@ -13,6 +13,12 @@ function App() {
     setBuildingType(e.target.value);
   };
 
+  const [addressSearch, setAddressSearch] = useState('');
+
+  const handleAddressSearch = (e) => {
+  setAddressSearch(e.target.value.toLowerCase());
+  };
+
   const handleMaterialChange = (e) => {
     setMaterialType(e.target.value);
   }
@@ -26,6 +32,15 @@ function App() {
         console.error('Error fetching pipe data:', error);
       });
   }, []);  
+
+  const filteredPipes = pipes
+  .filter(pipe =>
+    (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
+    (!materialType || pipe.MATERIAL_TYPE === materialType) &&
+    (!addressSearch || (pipe.WATER_SERVICE_ADDRESS && pipe.WATER_SERVICE_ADDRESS.toLowerCase().includes(addressSearch)))
+  )
+  .slice(0, 5000);
+
 
   return (
     <div style={{ padding: '20px' }}>
@@ -54,17 +69,21 @@ function App() {
           <option value="Unknown">Unknown</option>
         </select>
       </div>
+
+      <label htmlFor="addressSearch">Filter by Address:</label>{' '}
+      <input
+        id="addressSearch"
+        type="text"
+        value={addressSearch}
+        onChange={handleAddressSearch}
+        placeholder="e.g., MARTHA'S HAVEN"
+      />
   
       {/* 🗺️ Map Goes Here */}
-      <PipeMap
-        pipes={pipes
-          .filter(pipe =>
-            (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
-            (!materialType || pipe.MATERIAL_TYPE === materialType)
-          )
-          .slice(0, 100)
-        }
-      />
+      <PipeMap pipes={filteredPipes} />
+        
+  }
+      
   
       {/* Safety Check */}
       {(!Array.isArray(pipes) || pipes.length === 0) ? (
@@ -81,21 +100,16 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {pipes
-              .filter(pipe =>
-                (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
-                (!materialType || pipe.MATERIAL_TYPE === materialType)
-              )
-              .slice(0, 5000)
-              .map((pipe, index) => (
-                <tr key={index}>
-                  <td>{pipe.BUILDING_TYPE}</td>
-                  <td>{pipe.WATER_SERVICE_ADDRESS}</td>
-                  <td>{pipe.MATERIAL_TYPE}</td>
-                  <td>{pipe["PIPE_DIAMETER (mm)"]}</td>
-                  <td>{pipe.INSTALLED_DATE}</td>
-                </tr>
-              ))}
+            {filteredPipes.slice(0, 500).map((pipe, index) => (
+              <tr key={index}>
+                <td>{pipe.BUILDING_TYPE}</td>
+                <td>{pipe.WATER_SERVICE_ADDRESS}</td>
+                <td>{pipe.MATERIAL_TYPE}</td>
+                <td>{pipe["PIPE_DIAMETER (mm)"]}</td>
+                <td>{pipe.INSTALLED_DATE}</td>
+              </tr>
+            ))}
+
           </tbody>
         </table>
       )}
