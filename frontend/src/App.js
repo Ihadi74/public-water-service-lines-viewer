@@ -1,3 +1,4 @@
+import PipeMap from './PipeMap';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -39,10 +40,9 @@ function App() {
           <option value="Commercial">Commercial</option>
           <option value="Multi Family">Multi Family</option>
           <option value="Duplex">Duplex</option>
-
         </select>
       </div>
-
+  
       <div>
         <label htmlFor="materialFilter">Filter by Material Type:</label>{' '}
         <select id="materialFilter" onChange={handleMaterialChange} value={materialType}>
@@ -52,9 +52,19 @@ function App() {
           <option value="Cast Iron">Cast Iron</option>
           <option value="Cross-linked Polyethylene (PEX)">PEX</option>
           <option value="Unknown">Unknown</option>
-          {/* Add more if needed based on your dataset */}
         </select>
       </div>
+  
+      {/* 🗺️ Map Goes Here */}
+      <PipeMap
+        pipes={pipes
+          .filter(pipe =>
+            (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
+            (!materialType || pipe.MATERIAL_TYPE === materialType)
+          )
+          .slice(0, 100)
+        }
+      />
   
       {/* Safety Check */}
       {(!Array.isArray(pipes) || pipes.length === 0) ? (
@@ -72,9 +82,9 @@ function App() {
           </thead>
           <tbody>
             {pipes
-              .filter(pipe => 
-              (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
-              (!materialType || pipe.MATERIAL_TYPE === materialType)
+              .filter(pipe =>
+                (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
+                (!materialType || pipe.MATERIAL_TYPE === materialType)
               )
               .slice(0, 5000)
               .map((pipe, index) => (
@@ -87,11 +97,11 @@ function App() {
                 </tr>
               ))}
           </tbody>
-
         </table>
       )}
     </div>
   );
+  
   
 }
 
