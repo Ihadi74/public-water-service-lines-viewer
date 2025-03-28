@@ -1,6 +1,42 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+
+// Helper to get color by age
+function getAgeColor(installedDate) {
+    if (!installedDate) return 'gray';
+    const currentYear = new Date().getFullYear();
+    const yearInstalled = new Date(installedDate).getFullYear();
+    const age = currentYear - yearInstalled;
+  
+    if (age <= 10) return 'green';
+    if (age <= 25) return 'orange';
+    if (age <= 50) return 'red';
+    return 'gray';
+  }
+  
+  // Legend dot style
+  const legendDotStyle = {
+    display: 'inline-block',
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%',
+    marginRight: '8px'
+  };
+  
+  
+const legendStyle = {
+    position: 'absolute',
+    bottom: '10px',
+    right: '10px',
+    backgroundColor: 'white',
+    padding: '10px',
+    borderRadius: '5px',
+    fontSize: '14px',
+    boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+    zIndex: 1000
+  };
+  
 
 // Optional: Fix default icon path issue in Leaflet + Webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -10,30 +46,75 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-const PipeMap = ({ pipes }) => {
-  return (
-    <MapContainer center={[51.045, -114.057]} zoom={12} style={{ height: '500px', width: '100%' }}>
-      <TileLayer
-        attribution='&copy; OpenStreetMap contributors'
-        url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-      />
-      {pipes.map((pipe, index) => {
-        const coordinates = pipe.line?.coordinates?.[0]; // Adjust if your structure differs
-        if (!coordinates) return null;
+const materialColors = {
+    Copper: 'green',
+    Lead: 'red',
+    'Cast Iron': 'orange',
+    'Cross-linked Polyethylene (PEX)': 'blue',
+    Unknown: 'gray'
+  };  
 
-        const [lng, lat] = coordinates[0]; // Take the first point
-        return (
-          <Marker key={index} position={[lat, lng]}>
-            <Popup>
-              <strong>{pipe.BUILDING_TYPE}</strong><br />
-              {pipe.WATER_SERVICE_ADDRESS}<br />
-              {pipe.MATERIAL_TYPE}, {pipe["PIPE_DIAMETER (mm)"]}mm
-            </Popup>
-          </Marker>
-        );
-      })}
-    </MapContainer>
-  );
+const parseMultiLineString = (wkt) => {
+    // Remove the prefix and brackets
+    const cleaned = wkt
+      .replace('MULTILINESTRING ((', '')
+      .replace('))', '');
+  
+    // Split into coordinate pairs
+    return cleaned.split(', ').map(pair => {
+      const [lng, lat] = pair.trim().split(' ').map(Number);
+      return [lat, lng]; // Leaflet uses [lat, lng]
+    });
+  };
+  
+const PipeMap = ({ pipes }) => {
+  
+    return (
+        <div style={{ position: 'relative' }}>
+          <MapContainer
+            center={[51.045, -114.057]}
+            zoom={14}
+            scrollWheelZoom={false}
+            style={{ height: '600px', width: '100%' }}
+          >
+            <TileLayer
+              attribution='&copy; OpenStreetMap contributors'
+              url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            />
+      
+            {pipes.map((pipe, index) => {
+              if (!pipe.line) return null;
+      
+              const positions = parseMultiLineString(pipe.line);
+              const color = getAgeColor(pipe.INSTALLED_DATE);
+      
+              return (
+                <Polyline
+                  key={index}
+                  positions={positions}
+                  pathOptions={{ color, weight: 6 }}
+                >
+                  <Popup>
+                    <strong>{pipe.BUILDING_TYPE}</strong><br />
+                    {pipe.WATER_SERVICE_ADDRESS}<br />
+                    {pipe.MATERIAL_TYPE}, {pipe["PIPE_DIAMETER (mm)"]}mm
+                  </Popup>
+                </Polyline>
+              );
+            })}
+          </MapContainer>
+      
+          {/* Legend (outside the map container) */}
+          <div style={legendStyle}>
+            <strong>Legend: Pipe Age</strong>
+            <div><span style={{ backgroundColor: 'green', ...legendDotStyle }}></span> 0–10 years</div>
+            <div><span style={{ backgroundColor: 'orange', ...legendDotStyle }}></span> 11–25 years</div>
+            <div><span style={{ backgroundColor: 'red', ...legendDotStyle }}></span> 26–50 years</div>
+            <div><span style={{ backgroundColor: 'gray', ...legendDotStyle }}></span> 51+ years / Unknown</div>
+          </div>
+        </div>
+      );
+      
 };
 
 export default PipeMap;
