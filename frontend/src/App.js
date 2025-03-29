@@ -7,11 +7,13 @@ function App() {
   const [buildingType, setBuildingType] = useState('');
   const [materialType, setMaterialType] = useState('');
   const [addressSearch, setAddressSearch] = useState('');
+  const [goToPageInput, setGoToPageInput] = useState('');
+
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const limit = 100;
-
+  const totalPages = Math.ceil(totalResults / limit);
   const handleFilterChange = (e) => setBuildingType(e.target.value);
   const handleMaterialChange = (e) => setMaterialType(e.target.value);
   const handleAddressSearch = (e) => setAddressSearch(e.target.value.toLowerCase());
@@ -84,14 +86,41 @@ function App() {
         <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>
           Previous
         </button>
-        <span style={{ margin: '0 10px' }}>Page {currentPage}</span>
+  
+        <span style={{ margin: '0 10px' }}>Page {currentPage} of {totalPages}</span>
+  
         <button
-          onClick={() => setCurrentPage(p => p + 1)}
-          disabled={!Array.isArray(pipes) || pipes.length < limit}
+          onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+          disabled={currentPage === totalPages}
         >
           Next
         </button>
+
+        <div style={{ marginTop: '10px' }}>
+          <label htmlFor="goToPage">Go to page:</label>{' '}
+          <input
+            id="goToPage"
+            type="number"
+            min="1"
+            max={totalPages}
+            value={goToPageInput}
+            onChange={(e) => setGoToPageInput(e.target.value)}
+            style={{ width: '60px' }}
+          />
+        <button
+          onClick={() => {
+            const pageNum = parseInt(goToPageInput, 10);
+            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+              setCurrentPage(pageNum);
+              setGoToPageInput('');
+            }
+          }}
+         >
+            Go
+          </button>
+        </div>
       </div>
+
 
       {/* Map and Table */}
       <PipeMap pipes={pipes} />
