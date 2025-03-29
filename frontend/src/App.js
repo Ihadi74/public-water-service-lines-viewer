@@ -1,52 +1,50 @@
-import PipeMap from './PipeMap';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import PipeMap from './PipeMap';
 
 function App() {
   const [pipes, setPipes] = useState([]);
-
   const [buildingType, setBuildingType] = useState('');
-
   const [materialType, setMaterialType] = useState('');
-
-  const handleFilterChange = (e) => {
-    setBuildingType(e.target.value);
-  };
-
   const [addressSearch, setAddressSearch] = useState('');
 
-  const handleAddressSearch = (e) => {
-  setAddressSearch(e.target.value.toLowerCase());
-  };
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const limit = 100;
 
-  const handleMaterialChange = (e) => {
-    setMaterialType(e.target.value);
-  }
+  const handleFilterChange = (e) => setBuildingType(e.target.value);
+  const handleMaterialChange = (e) => setMaterialType(e.target.value);
+  const handleAddressSearch = (e) => setAddressSearch(e.target.value.toLowerCase());
+
   useEffect(() => {
-    axios.get('http://localhost:5001/api/pipes')
-      .then(response => {
-        console.log("Data from API:", response.data); // ✅ Add this
-        setPipes(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching pipe data:', error);
-      });
-  }, []);  
+    const fetchPipes = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/api/pipes', {
+          params: {
+            page: currentPage,
+            limit,
+            address: addressSearch || undefined,
+            buildingType: buildingType || undefined,
+            materialType: materialType || undefined
+          }
+        });
 
-  const filteredPipes = pipes
-  .filter(pipe =>
-    (!buildingType || pipe.BUILDING_TYPE === buildingType) &&
-    (!materialType || pipe.MATERIAL_TYPE === materialType) &&
-    (!addressSearch || (pipe.WATER_SERVICE_ADDRESS && pipe.WATER_SERVICE_ADDRESS.toLowerCase().includes(addressSearch)))
-  )
-  .slice(0, 5000);
+        setPipes(response.data.pipes);
+        setTotalResults(response.data.total); // ✅ Use this instead of response outside
+      } catch (error) {
+        console.error("Error fetching pipe data:", error);
+      }
+    };
 
+    fetchPipes();
+  }, [currentPage, addressSearch, buildingType, materialType]);
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>Public Water Service Lines</h1>
-  
-      {/* Filter Dropdown */}
+      <p>{totalResults} results found</p> {/* ✅ Updated to use safe variable */}
+
+      {/* Filters... (unchanged) */}
       <div>
         <label htmlFor="buildingFilter">Filter by Building Type:</label>{' '}
         <select id="buildingFilter" onChange={handleFilterChange} value={buildingType}>
@@ -57,7 +55,7 @@ function App() {
           <option value="Duplex">Duplex</option>
         </select>
       </div>
-  
+
       <div>
         <label htmlFor="materialFilter">Filter by Material Type:</label>{' '}
         <select id="materialFilter" onChange={handleMaterialChange} value={materialType}>
@@ -70,22 +68,34 @@ function App() {
         </select>
       </div>
 
-      <label htmlFor="addressSearch">Filter by Address:</label>{' '}
-      <input
-        id="addressSearch"
-        type="text"
-        value={addressSearch}
-        onChange={handleAddressSearch}
-        placeholder="e.g., MARTHA'S HAVEN"
-      />
-  
-      {/* 🗺️ Map Goes Here */}
-      <PipeMap pipes={filteredPipes} />
-        
-  }
-      
-  
-      {/* Safety Check */}
+      <div>
+        <label htmlFor="addressSearch">Filter by Address:</label>{' '}
+        <input
+          id="addressSearch"
+          type="text"
+          value={addressSearch}
+          onChange={handleAddressSearch}
+          placeholder="e.g., MARTHA'S HAVEN"
+        />
+      </div>
+
+      {/* Pagination */}
+      <div style={{ marginTop: '10px' }}>
+        <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+          Previous
+        </button>
+        <span style={{ margin: '0 10px' }}>Page {currentPage}</span>
+        <button
+          onClick={() => setCurrentPage(p => p + 1)}
+          disabled={!Array.isArray(pipes) || pipes.length < limit}
+        >
+          Next
+        </button>
+      </div>
+
+      {/* Map and Table */}
+      <PipeMap pipes={pipes} />
+
       {(!Array.isArray(pipes) || pipes.length === 0) ? (
         <p>Loading or no data available...</p>
       ) : (
@@ -100,7 +110,7 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {filteredPipes.slice(0, 500).map((pipe, index) => (
+            {pipes.map((pipe, index) => (
               <tr key={index}>
                 <td>{pipe.BUILDING_TYPE}</td>
                 <td>{pipe.WATER_SERVICE_ADDRESS}</td>
@@ -109,14 +119,11 @@ function App() {
                 <td>{pipe.INSTALLED_DATE}</td>
               </tr>
             ))}
-
           </tbody>
         </table>
       )}
     </div>
   );
-  
-  
 }
 
 export default App;

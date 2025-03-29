@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 
 // Helper to get color by age
@@ -67,21 +67,24 @@ const parseMultiLineString = (wkt) => {
     });
   };
   
-const PipeMap = ({ pipes }) => {
+  const PipeMap = ({ pipes }) => {
+    if (!Array.isArray(pipes)) {
+      return <p>Loading map data...</p>;
+    }
   
     return (
-        <div style={{ position: 'relative' }}>
-          <MapContainer
-            center={[51.045, -114.057]}
-            zoom={14}
-            scrollWheelZoom={false}
-            dragging={true}
-            style={{ height: '600px', width: '100%' }}
-          >
-            <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
-              url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-            />
+      <div style={{ position: 'relative' }}>
+        <MapContainer
+          center={[51.045, -114.057]}
+          zoom={14}
+          scrollWheelZoom={false}
+          dragging={true}
+          style={{ height: '600px', width: '100%' }}
+        >
+          <TileLayer
+            attribution='&copy; OpenStreetMap contributors'
+            url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          />
       
             {pipes.map((pipe, index) => {
               if (!pipe.line) return null;
@@ -100,6 +103,14 @@ const PipeMap = ({ pipes }) => {
                     {pipe.WATER_SERVICE_ADDRESS}<br />
                     {pipe.MATERIAL_TYPE}, {pipe["PIPE_DIAMETER (mm)"]}mm
                   </Popup>
+                  {/* ✅ Tooltip on Hover */}
+                  <Tooltip sticky>
+                    <div>
+                      <strong>{pipe.BUILDING_TYPE}</strong><br />
+                      Diameter: {pipe["PIPE_DIAMETER (mm)"]}mm<br />
+                      Installed: {pipe.INSTALLED_DATE}
+                    </div>
+                  </Tooltip>
                 </Polyline>
               );
             })}
