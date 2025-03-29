@@ -66,6 +66,33 @@ const parseMultiLineString = (wkt) => {
       return [lat, lng]; // Leaflet uses [lat, lng]
     });
   };
+
+  import { useMap } from 'react-leaflet';
+import { useEffect } from 'react';
+
+const FitBounds = ({ pipes }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!pipes || pipes.length === 0) return;
+
+    const allCoordinates = [];
+
+    pipes.forEach(pipe => {
+      if (pipe.line) {
+        const positions = parseMultiLineString(pipe.line);
+        allCoordinates.push(...positions);
+      }
+    });
+
+    if (allCoordinates.length > 0) {
+      map.fitBounds(allCoordinates);
+    }
+  }, [pipes, map]);
+
+  return null;
+};
+
   
   const PipeMap = ({ pipes }) => {
     if (!Array.isArray(pipes)) {
@@ -76,7 +103,7 @@ const parseMultiLineString = (wkt) => {
       <div style={{ position: 'relative' }}>
         <MapContainer
           center={[51.045, -114.057]}
-          zoom={14}
+          zoom={10}
           scrollWheelZoom={false}
           dragging={true}
           style={{ height: '600px', width: '100%' }}
@@ -85,7 +112,8 @@ const parseMultiLineString = (wkt) => {
             attribution='&copy; OpenStreetMap contributors'
             url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
           />
-      
+          <FitBounds pipes={pipes} />
+
             {pipes.map((pipe, index) => {
               if (!pipe.line) return null;
       
