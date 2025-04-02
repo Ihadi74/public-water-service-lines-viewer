@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+//Schema
 const pipeSchema = new mongoose.Schema({
   material: {
     type: String, // e.g., 'PVC', 'Copper'
@@ -27,5 +28,6 @@ const pipeSchema = new mongoose.Schema({
   // You can add more fields as necessary
 });
 
+//Models
 module.exports = mongoose.model('Pipe', pipeSchema);
 
