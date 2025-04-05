@@ -2,6 +2,9 @@ import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 
+
+import { useMap } from 'react-leaflet';
+import { useEffect } from 'react';
 // Helper to get color by age
 function getAgeColor(installedDate) {
     if (!installedDate) return 'gray';
@@ -38,7 +41,6 @@ const legendStyle = {
   };
   
 
-// Optional: Fix default icon path issue in Leaflet + Webpack
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -67,8 +69,6 @@ const parseMultiLineString = (wkt) => {
     });
   };
 
-  import { useMap } from 'react-leaflet';
-import { useEffect } from 'react';
 
 const FitBounds = ({ pipes }) => {
   const map = useMap();
