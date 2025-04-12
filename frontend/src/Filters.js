@@ -1,7 +1,7 @@
 import React from "react";
 import "./App.css";
 
-function Filters({ setBuildingType, setMaterialType, setAddressSearch }) {
+function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSearchAddress }) {
   const styleFilters = {
     display: "flex",
     gap: "20px",
@@ -22,7 +22,11 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch }) {
     border: "1px solid #ccc",
     minWidth: "200px",
   };
-
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setAddressSearch(value);
+    handleSearchAddress(value); // Trigger the address search handler
+  };
   return (
     <div style={styleFilters}>
       {/* Building Type Filter */}
@@ -40,7 +44,6 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch }) {
         </select>
       </label>
 
-     
       <label>
         Material Type:{" "}
         <select
@@ -60,7 +63,7 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch }) {
         <input
           type="text"
           placeholder="Enter address"
-          onChange={(e) => setAddressSearch(e.target.value.toLowerCase())}
+          onChange={handleChange}
           style={inputStyle}
         />
       </label>
