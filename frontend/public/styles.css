@@ -1,0 +1,8 @@
+.leaflet-popup-content {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+  }
+  
+  .leaflet-popup-content b {
+    color: #0077cc;
+  }
