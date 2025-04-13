@@ -3,27 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import { useMap } from 'react-leaflet';
 
-// CSS Styling (Included Within the Component)
-const legendDotStyle = {
-  display: 'inline-block',
-  width: '16px',
-  height: '16px',
-  borderRadius: '50%',
-  marginRight: '10px',
-};
-
-const legendStyle = {
-  position: 'absolute',
-  bottom: '10px',
-  right: '10px',
-  backgroundColor: 'white',
-  padding: '10px',
-  borderRadius: '5px',
-  fontSize: '14px',
-  boxShadow: '0 0 5px rgba(0,0,0,0.3)',
-  zIndex: 1000,
-};
-
 // Helper function to get color based on break status
 function getStatusColor(status) {
   if (!status) return 'gray';
@@ -59,11 +38,8 @@ const FitBounds = ({ waterBreaks }) => {
     if (!waterBreaks || waterBreaks.length === 0) return;
 
     const allCoordinates = waterBreaks
-      .filter(breakInfo => breakInfo.point?.coordinates) // Ensure valid coordinates
-      .map(breakInfo => [
-        parseFloat(breakInfo.point.coordinates[1]),
-        parseFloat(breakInfo.point.coordinates[0])
-      ]);
+      .filter(breakInfo => breakInfo.coordinates) // Ensure valid coordinates
+      .map(breakInfo => breakInfo.coordinates);
 
     if (allCoordinates.length > 0) {
       map.fitBounds(allCoordinates);
@@ -76,6 +52,7 @@ const FitBounds = ({ waterBreaks }) => {
 // WaterBreakMap Component
 const WaterBreakMap = () => {
   const [waterBreaks, setWaterBreaks] = useState([]);
+  const [showMarkers, setShowMarkers] = useState(false);
 
   // Fetch water break data with filtering for post-2000 entries
   useEffect(() => {
@@ -89,7 +66,11 @@ const WaterBreakMap = () => {
         // Filter data to include only water breaks from 2000 onwards
         const filteredData = data.filter(breakInfo => {
           const breakYear = new Date(breakInfo.break_date).getFullYear();
-          return breakYear >= 2000 && breakInfo.point?.coordinates;
+          return (
+            breakYear >= 2000 &&
+            breakInfo.status === "ACTIVE" && // Filter only ACTIVE status
+            breakInfo.point?.coordinates
+          );
         });
 
         // Transform data into expected format for Leaflet markers
@@ -112,12 +93,33 @@ const WaterBreakMap = () => {
     fetchWaterBreaks();
   }, []);
 
+  // Listen to map zoom level
+  const ZoomListener = () => {
+    const map = useMap();
+
+    useEffect(() => {
+      const onZoom = () => {
+        const zoomLevel = map.getZoom();
+        const maxZoom = map.getMaxZoom(); // Get maximum zoom level of the map
+        setShowMarkers(zoomLevel === maxZoom - 4); // Display markers only at the second-highest zoom level
+      };
+
+      map.on('zoomend', onZoom);
+
+      return () => {
+        map.off('zoomend', onZoom);
+      };
+    }, [map]);
+
+    return null;
+  };
+
   return (
     <div style={{ position: 'relative' }}>
       <MapContainer
         center={[51.045, -114.057]}
         zoom={10}
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
         dragging={true}
         style={{ height: '600px', width: '100%' }}
       >
@@ -126,37 +128,54 @@ const WaterBreakMap = () => {
           url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
         />
         <FitBounds waterBreaks={waterBreaks} />
+        <ZoomListener />
 
-        {/* Display Water Break Markers */}
-        {waterBreaks.map((breakInfo, index) => (
-          breakInfo.coordinates ? (
-            <Marker key={index} position={breakInfo.coordinates} icon={createCustomIcon(getStatusColor(breakInfo.status))}>
-              <Popup>
-                <strong>Break Date:</strong> {breakInfo.break_date} <br />
-                <strong>Break Type:</strong> {breakInfo.break_type} <br />
-                <strong>Status:</strong> {breakInfo.status}
-              </Popup>
-              <Tooltip sticky>
-                <div>
-                  <strong>Break Type:</strong> {breakInfo.break_type} <br />
-                  <strong>Status:</strong> {breakInfo.status} <br />
-                  <strong>Break Date:</strong> {breakInfo.break_date}
-                </div>
-              </Tooltip>
-            </Marker>
-          ) : null
-        ))}
+        {/* Display Active Water Break Markers Only When at Second-Highest Zoom Level */}
+        {showMarkers &&
+          waterBreaks.map((breakInfo, index) => (
+            breakInfo.coordinates ? (
+              <Marker
+                key={index}
+                position={breakInfo.coordinates}
+                icon={createCustomIcon(getStatusColor(breakInfo.status))}
+              >
+                <Popup>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: '100px', // Adjust width
+                    height: '100px', // Adjust height
+                    backgroundColor: 'lightblue',
+                    borderRadius: '50%', // Circular shape
+                    textAlign: 'center',
+                    overflow: 'hidden', // Prevent text overflow
+                    fontSize: '9px', // Adjust font size
+                    padding: '0',
+                    border: 'none',
+                  }}>
+                    <div>
+                      <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br /> {/* Only show date */}
+                      <strong>Break Type:</strong> {breakInfo.break_type} <br />
+                      <strong>Status:</strong> {breakInfo.status}
+                    </div>
+                  </div>
+                </Popup>
+                <Tooltip sticky>
+                  <div>
+                    <strong>Break Type:</strong> {breakInfo.break_type} <br />
+                    <strong>Status:</strong> {breakInfo.status} <br />
+                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} {/* Only show date */}
+                  </div>
+                </Tooltip>
+              </Marker>
+            ) : null
+          ))
+        }
       </MapContainer>
-
-      {/* Legend for Water Break Status */}
-      <div style={legendStyle}>
-        <strong>Legend: Water Break Status</strong>
-        <div><span style={{ backgroundColor: 'red', ...legendDotStyle }}></span> Active</div>
-        <div><span style={{ backgroundColor: 'orange', ...legendDotStyle }}></span> Inactive</div>
-        <div><span style={{ backgroundColor: 'gray', ...legendDotStyle }}></span> Retired</div>
-      </div>
     </div>
   );
 };
 
 export default WaterBreakMap;
+
