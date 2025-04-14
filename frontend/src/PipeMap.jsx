@@ -144,6 +144,8 @@ const PipeMap = ({ pipes }) => {
                 <div
                   style={{
                     backgroundColor: 'blue',
+                    height: 'auto',
+                    width: 'auto',
                     border: 'none',
                     padding: '0.5px',
                     borderRadius: '50%',
