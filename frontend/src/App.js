@@ -4,7 +4,7 @@ import PipeMap from "./PipeMap";
 import DisplayRecords from "./DisplayRecords";
 import Filters from "./Filters";
 import Header from "./Header";
-import WaterBreakMap from "./WaterBreakMap";
+//import WaterBreakMap from "./WaterBreakMap";
 
 function App() {
   const [buildingType, setBuildingType] = useState("");
@@ -59,10 +59,7 @@ function App() {
           <PipeMap pipes={pipes} />
         </div>
 
-        {/* Water Break Map Integration */}
-        <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
-          <WaterBreakMap />
-        </div>
+      
 
         {/* Display Records Section */}
         <div style={{ flex: "1 1 45%", overflowY: "auto" }}>

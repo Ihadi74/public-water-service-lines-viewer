@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import { useMap } from 'react-leaflet';
-
 // Helper functions for pipes and water breaks
 function getAgeColor(installedDate) {
   if (!installedDate) return 'gray';
@@ -18,7 +17,7 @@ function parseMultiLineString(wkt) {
   const cleaned = wkt
     .replace('MULTILINESTRING ((', '')
     .replace('))', '');
-  return cleaned.split(', ').map(pair => {
+  return cleaned.split(', ').map((pair) => {
     const [lng, lat] = pair.trim().split(' ').map(Number);
     return [lat, lng];
   });
@@ -29,32 +28,7 @@ const createCustomIcon = (color) => {
     html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%;"></div>`,
   });
 };
-
-// FitBounds Component (from the first code snippet)
-const FitBounds = ({ pipes }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!pipes || pipes.length === 0) return;
-
-    const allCoordinates = [];
-
-    pipes.forEach(pipe => {
-      if (pipe.line) {
-        const positions = parseMultiLineString(pipe.line);
-        allCoordinates.push(...positions);
-      }
-    });
-
-    if (allCoordinates.length > 0) {
-      map.fitBounds(allCoordinates);
-    }
-  }, [pipes, map]);
-
-  return null;
-};
-
-// ZoomListener Component
+// Component for handling map zoom changes
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
   useEffect(() => {
@@ -69,25 +43,10 @@ const ZoomListener = ({ setShowMarkers }) => {
   }, [map, setShowMarkers]);
   return null;
 };
-
-// Legend Style
-const legendStyle = {
-  position: 'absolute',
-  bottom: '10px',
-  right: '10px',
-  backgroundColor: 'white',
-  padding: '10px',
-  borderRadius: '5px',
-  fontSize: '14px',
-  boxShadow: '0 0 5px rgba(0,0,0,0.3)',
-  zIndex: 1000,
-};
-
 // Main Map Component
 const PipeMap = ({ pipes }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
   const [showMarkers, setShowMarkers] = useState(false);
-
   // Fetch water break data separately
   useEffect(() => {
     async function fetchWaterBreaks() {
@@ -111,12 +70,10 @@ const PipeMap = ({ pipes }) => {
     }
     fetchWaterBreaks();
   }, []);
-
   // Filter water breaks to only include active ones
   const activeWaterBreaks = waterBreaks.filter(
     (breakInfo) => breakInfo.status === 'ACTIVE'
   );
-
   return (
     <div style={{ position: 'relative' }}>
       <MapContainer
@@ -133,7 +90,6 @@ const PipeMap = ({ pipes }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ZoomListener setShowMarkers={setShowMarkers} />
-        <FitBounds pipes={pipes} />
         {/* Render Pipes */}
         {pipes.map((pipe, index) => {
           if (!pipe.line) return null;
@@ -166,12 +122,12 @@ const PipeMap = ({ pipes }) => {
         })}
         {/* Render Active Water Break Markers */}
         {showMarkers &&
-          activeWaterBreaks.map((breakInfo, index) =>
+          activeWaterBreaks.map((breakInfo, index) => (
             breakInfo.coordinates ? (
               <Marker
                 key={index}
                 position={breakInfo.coordinates}
-                icon={createCustomIcon('blue')} // Active water breaks are blue
+                icon={createCustomIcon('red')} // Active water breaks are red
               >
                 <Popup>
                   <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
@@ -186,18 +142,9 @@ const PipeMap = ({ pipes }) => {
                 </Tooltip>
               </Marker>
             ) : null
-          )}
+          ))}
       </MapContainer>
-      {/* Legend (from the first code snippet) */}
-      <div style={legendStyle}>
-        <strong>Legend: Pipe Age</strong>
-        <div><span style={{ backgroundColor: 'green', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 0–10 years</div>
-        <div><span style={{ backgroundColor: 'orange', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 11–25 years</div>
-        <div><span style={{ backgroundColor: 'red', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 26–50 years</div>
-        <div><span style={{ backgroundColor: 'gray', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 51+ years / Unknown</div>
-      </div>
     </div>
   );
 };
-
 export default PipeMap;

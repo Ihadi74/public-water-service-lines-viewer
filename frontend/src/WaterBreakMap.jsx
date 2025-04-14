@@ -7,7 +7,7 @@ import { useMap } from 'react-leaflet';
 function getStatusColor(status) {
   if (!status) return 'gray';
   const statusColors = {
-    ACTIVE: 'red',
+    ACTIVE: 'lightblue',
     INACTIVE: 'orange',
     RETIRED: 'gray',
   };
