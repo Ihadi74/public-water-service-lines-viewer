@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { useMap } from 'react-leaflet';
+import FormatColorResetIcon from '@mui/icons-material/FormatColorReset'; // Import Material UI icon
+import ReactDOMServer from 'react-dom/server'; // Import ReactDOMServer for rendering React components as HTML strings
 
 // Helper functions for pipes and water breaks
 function getAgeColor(installedDate) {
@@ -14,73 +15,74 @@ function getAgeColor(installedDate) {
   if (age <= 50) return 'red';
   return 'gray';
 }
+
 function parseMultiLineString(wkt) {
-  const cleaned = wkt
-    .replace('MULTILINESTRING ((', '')
-    .replace('))', '');
-  return cleaned.split(', ').map(pair => {
+  const cleaned = wkt.replace('MULTILINESTRING ((', '').replace('))', '');
+  return cleaned.split(', ').map((pair) => {
     const [lng, lat] = pair.trim().split(' ').map(Number);
     return [lat, lng];
   });
 }
-const createCustomIcon = (color) => {
+
+// Create custom water break icon using FormatColorResetIcon
+const createWaterdropIcon = () => {
   return L.divIcon({
-    className: `custom-marker-${color}`,
-    html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%;"></div>`,
+    className: 'custom-waterdrop-icon',
+    html: `
+      <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 24px; 
+        height: 24px; 
+        background: transparent;
+        border-radius: 50%;
+        filter: invert(31%) sepia(90%) saturate(500%) hue-rotate(190deg) brightness(1.2);
+      ">
+        ${ReactDOMServer.renderToString(
+          <FormatColorResetIcon style={{ color: 'blue', fontSize: '24px' }} />
+        )}
+      </div>
+    `,
   });
 };
 
-// FitBounds Component (from the first code snippet)
-const FitBounds = ({ pipes }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!pipes || pipes.length === 0) return;
-
-    const allCoordinates = [];
-
-    pipes.forEach(pipe => {
-      if (pipe.line) {
-        const positions = parseMultiLineString(pipe.line);
-        allCoordinates.push(...positions);
-      }
-    });
-
-    if (allCoordinates.length > 0) {
-      map.fitBounds(allCoordinates);
-    }
-  }, [pipes, map]);
-
-  return null;
-};
-
-// ZoomListener Component
+// Component for handling map zoom changes
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
   useEffect(() => {
     const onZoom = () => {
-      const zoomLevel = map.getZoom(); // Get the current zoom level
-      setShowMarkers(zoomLevel === 15); // Update state when zoom level is 15
+      const zoomLevel = map.getZoom();
+      setShowMarkers(zoomLevel === 15);
     };
-    map.on('zoomend', onZoom); // Attach zoomend event listener
+    map.on('zoomend', onZoom);
     return () => {
-      map.off('zoomend', onZoom); // Clean up on unmount
+      map.off('zoomend', onZoom);
     };
   }, [map, setShowMarkers]);
   return null;
 };
 
-// Legend Style
-const legendStyle = {
-  position: 'absolute',
-  bottom: '10px',
-  right: '10px',
-  backgroundColor: 'white',
-  padding: '10px',
-  borderRadius: '5px',
-  fontSize: '14px',
-  boxShadow: '0 0 5px rgba(0,0,0,0.3)',
-  zIndex: 1000,
+// **NEW: Center Map Dynamically**
+const CenterMap = ({ pipes }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!pipes || pipes.length === 0) {
+      map.setView([51.045, -114.057], 11); // Default center if no pipes exist
+      return;
+    }
+
+    const allCoordinates = pipes.flatMap((pipe) =>
+      pipe.line ? parseMultiLineString(pipe.line) : []
+    );
+
+    if (allCoordinates.length > 0) {
+      map.fitBounds(allCoordinates); // Center dynamically on pipe data
+    }
+  }, [pipes, map]);
+
+  return null;
 };
 
 // Main Map Component
@@ -95,13 +97,12 @@ const PipeMap = ({ pipes }) => {
         const response = await fetch('https://data.calgary.ca/resource/dpcu-jr23.json');
         if (!response.ok) throw new Error('Failed to fetch water break data');
         const data = await response.json();
-        // Process data to extract necessary fields
         const formattedData = data.map((breakInfo) => ({
           break_date: breakInfo.break_date,
           break_type: breakInfo.break_type,
           status: breakInfo.status,
           coordinates: breakInfo.point?.coordinates
-            ? [breakInfo.point.coordinates[1], breakInfo.point.coordinates[0]] // Convert to [lat, lng]
+            ? [breakInfo.point.coordinates[1], breakInfo.point.coordinates[0]]
             : null,
         }));
         setWaterBreaks(formattedData);
@@ -113,17 +114,15 @@ const PipeMap = ({ pipes }) => {
   }, []);
 
   // Filter water breaks to only include active ones
-  const activeWaterBreaks = waterBreaks.filter(
-    (breakInfo) => breakInfo.status === 'ACTIVE'
-  );
+  const activeWaterBreaks = waterBreaks.filter((breakInfo) => breakInfo.status === 'ACTIVE');
 
   return (
     <div style={{ position: 'relative' }}>
       <MapContainer
         center={[51.045, -114.057]}
-        zoom={11} // Start map at zoom level 11
-        maxZoom={20} // Ensure zoom range allows transitions
-        minZoom={3} // Minimum zoom level
+        zoom={11}
+        maxZoom={20}
+        minZoom={3}
         scrollWheelZoom={true}
         dragging={true}
         style={{ height: '600px', width: '100%' }}
@@ -132,25 +131,32 @@ const PipeMap = ({ pipes }) => {
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <CenterMap pipes={pipes} /> {/* NEW: Dynamically adjust center */}
         <ZoomListener setShowMarkers={setShowMarkers} />
-        <FitBounds pipes={pipes} />
         {/* Render Pipes */}
         {pipes.map((pipe, index) => {
           if (!pipe.line) return null;
           const positions = parseMultiLineString(pipe.line);
           const color = getAgeColor(pipe.INSTALLED_DATE);
           return (
-            <Polyline
-              key={index}
-              positions={positions}
-              pathOptions={{ color, weight: 6 }}
-            >
+            <Polyline key={index} positions={positions} pathOptions={{ color, weight: 6 }}>
               <Popup>
-                <strong>{pipe.BUILDING_TYPE}</strong>
-                <br />
-                {pipe.WATER_SERVICE_ADDRESS}
-                <br />
-                {pipe.MATERIAL_TYPE}, {pipe['PIPE_DIAMETER (mm)']}mm
+                <div
+                  style={{
+                    backgroundColor: 'blue',
+                    border: 'none',
+                    padding: '0.5px',
+                    borderRadius: '50%',
+                    color: 'transparent',
+                    textAlign: 'center',
+                  }}
+                >
+                  <strong>{pipe.BUILDING_TYPE}</strong>
+                  <br />
+                  {pipe.WATER_SERVICE_ADDRESS}
+                  <br />
+                  {pipe.MATERIAL_TYPE}, {pipe['PIPE_DIAMETER (mm)']}mm
+                </div>
               </Popup>
               <Tooltip sticky>
                 <div>
@@ -168,34 +174,26 @@ const PipeMap = ({ pipes }) => {
         {showMarkers &&
           activeWaterBreaks.map((breakInfo, index) =>
             breakInfo.coordinates ? (
-              <Marker
-                key={index}
-                position={breakInfo.coordinates}
-                icon={createCustomIcon('blue')} // Active water breaks are blue
-              >
+              <Marker key={index} position={breakInfo.coordinates} icon={createWaterdropIcon()}>
                 <Popup>
-                  <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
-                  <strong>Break Type:</strong> {breakInfo.break_type}
-                </Popup>
-                <Tooltip sticky>
-                  <div>
+                  <div
+                    style={{
+                      backgroundColor: 'blue',
+                      border: 'none',
+                      padding: '0px',
+                      borderRadius: '20px',
+                      color: 'white',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
                     <strong>Break Type:</strong> {breakInfo.break_type}
-                    <br />
-                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]}
                   </div>
-                </Tooltip>
+                </Popup>
               </Marker>
             ) : null
           )}
       </MapContainer>
-      {/* Legend (from the first code snippet) */}
-      <div style={legendStyle}>
-        <strong>Legend: Pipe Age</strong>
-        <div><span style={{ backgroundColor: 'green', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 0–10 years</div>
-        <div><span style={{ backgroundColor: 'orange', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 11–25 years</div>
-        <div><span style={{ backgroundColor: 'red', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 26–50 years</div>
-        <div><span style={{ backgroundColor: 'gray', display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px' }}></span> 51+ years / Unknown</div>
-      </div>
     </div>
   );
 };

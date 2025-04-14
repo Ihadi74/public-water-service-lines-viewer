@@ -133,13 +133,6 @@ const PipeMap = ({ pipes }) => {
                   <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
                   <strong>Break Type:</strong> {breakInfo.break_type}
                 </Popup>
-                <Tooltip sticky>
-                  <div>
-                    <strong>Break Type:</strong> {breakInfo.break_type}
-                    <br />
-                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]}
-                  </div>
-                </Tooltip>
               </Marker>
             ) : null
           ))}
