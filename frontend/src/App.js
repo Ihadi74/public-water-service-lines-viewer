@@ -3,14 +3,15 @@ import axios from "axios";
 import PipeMap from "./PipeMap";
 import DisplayRecords from "./DisplayRecords";
 import Filters from "./Filters";
+//import Pagination from "./Pagination";
 import Header from "./Header";
-
 
 function App() {
   const [buildingType, setBuildingType] = useState("");
-  const [materialType, setMaterialType] = useState("");
-  const [addressSearch, setAddressSearch] = useState("");
-  const [pipes, setPipes] = useState([]);
+ const [materialType, setMaterialType] = useState("");
+ const [addressSearch, setAddressSearch] = useState("");
+ 
+ const [pipes, setPipes] = useState([]);
 
   useEffect(() => {
     const fetchPipes = async () => {
@@ -43,32 +44,33 @@ function App() {
         setBuildingType={setBuildingType}
         setMaterialType={setMaterialType}
         setAddressSearch={setAddressSearch}
+        handleSearchAddress={handleSearchAddress}
       />
+
+<div style={{
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "20px",
+  padding: "20px",
+  justifyContent: "space-between"
+}}>
+      {/* Map and Table */}
+      <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
+        <PipeMap pipes={pipes} />
+      </div>
 
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "20px",
-          padding: "20px",
-          justifyContent: "space-between",
+          flex: "1 1 45%",
+          overflowY: "auto",
         }}
       >
-        {/* Pipe Map Section */}
-        <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
-          <PipeMap pipes={pipes} />
-        </div>
-
-      
-
-        {/* Display Records Section */}
-        <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
-          <DisplayRecords
-            buildingType={buildingType}
-            materialType={materialType}
-            addressSearch={addressSearch}
-          />
-        </div>
+        <DisplayRecords
+          buildingType={buildingType}
+          materialType={materialType}
+          addressSearch={addressSearch}
+        />
+      </div>
       </div>
     </>
   );

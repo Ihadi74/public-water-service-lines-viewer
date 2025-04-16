@@ -22,6 +22,9 @@ function Pagination({ currentPage, setCurrentPage, totalResults, limit }) {
       </button>
 
       <span style={{ margin: "0 10px" }}>Page {currentPage}</span>
+      <span style={{ margin: "0 10px" }}>
+        of {totalPages}
+      </span>
       <button
         onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
         disabled={currentPage === totalPages}

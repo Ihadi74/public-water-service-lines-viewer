@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 
+
 function Header({ buildingType, materialType, addressSearch }) {
   const [totalResults, setTotalResults] = useState(0);
+
+
+  
 
   useEffect(() => {
     const fetchTotalResults = async () => {
