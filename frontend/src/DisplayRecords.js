@@ -1,7 +1,7 @@
 //import Table from "react-bootstrap/Table";
 import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
-import PipeMap from "./PipeMap";
+//import PipeMap from "./PipeMap";
 import "./App.css";
 
 function DisplayRecords({ buildingType, materialType, addressSearch }) {
