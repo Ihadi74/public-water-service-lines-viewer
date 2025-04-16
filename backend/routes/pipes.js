@@ -1,22 +1,24 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Pipe = require('../models/Pipes');
+const Pipe = require("../models/Pipes"); // Make sure this path and name is correct
 
 // GET /api/pipes with filtering + pagination
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const {
       address,
       buildingType,
       materialType,
       page = 1,
-      limit = 100
+      limit = 100,
     } = req.query;
 
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     const query = {};
+    //console.log("Query sent to MongoDB:", query);
 
     if (address) {
-      query.WATER_SERVICE_ADDRESS = { $regex: new RegExp(address, 'i') };
+      query.WATER_SERVICE_ADDRESS = { $regex: new RegExp(address, "i") };
     }
 
     if (buildingType) {
@@ -27,17 +29,13 @@ router.get('/', async (req, res) => {
       query.MATERIAL_TYPE = materialType;
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Pipe.countDocuments(query);
+    const pipes = await Pipe.find(query).skip(skip).limit(parseInt(limit));
 
-    const [pipes, total] = await Promise.all([
-      Pipe.find(query).skip(skip).limit(parseInt(limit)),
-      Pipe.countDocuments(query)
-    ]);
-
-    res.json({ pipes, total });
+    res.json({ total, pipes });
   } catch (error) {
-    console.error('Failed to fetch pipes:', error.message);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Failed to fetch pipes:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
