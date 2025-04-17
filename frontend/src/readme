@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import Pressure from './Pressure'; // Import the Pressure component
 import L from 'leaflet';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
@@ -43,21 +43,21 @@ const createWaterdropIcon = () => {
         ${ReactDOMServer.renderToString(
           <FormatColorResetIcon style={{ color: 'blue', fontSize: '24px' }} />
         )}
+
+    
       </div>
     `,
   });
 };
 
-// **Fix: Define ZoomListener Outside of PipeMap**
+// Component for handling map zoom changes
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
-
   useEffect(() => {
     const onZoom = () => {
       const zoomLevel = map.getZoom();
-      setShowMarkers(zoomLevel === 17);
+      setShowMarkers(zoomLevel === 15);
     };
-
     map.on('zoomend', onZoom);
     return () => {
       map.off('zoomend', onZoom);
@@ -66,33 +66,10 @@ const ZoomListener = ({ setShowMarkers }) => {
   return null;
 };
 
-// **NEW: Center Map Dynamically**
-const CenterMap = ({ pipes }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!pipes || pipes.length === 0) {
-      map.setView([51.045, -114.057], 11); // Default center if no pipes exist
-      return;
-    }
-
-    const allCoordinates = pipes.flatMap((pipe) =>
-      pipe.line ? parseMultiLineString(pipe.line) : []
-    );
-
-    if (allCoordinates.length > 0) {
-      map.fitBounds(allCoordinates); // Center dynamically on pipe data
-    }
-  }, [pipes, map]);
-
-  return null;
-};
-
 // Main Map Component
 const PipeMap = ({ pipes }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
   const [polygonData, setPolygonData] = useState([]); // For Pressure polygons
-  const [showMarkers, setShowMarkers] = useState(false); // State for ZoomListener
 
   useEffect(() => {
     async function fetchWaterBreaks() {
@@ -135,7 +112,7 @@ const PipeMap = ({ pipes }) => {
     <div style={{ position: 'relative' }}>
       <MapContainer
         center={[51.0443, -114.0631]}
-        zoom={10.5}
+        zoom={10.}
         maxZoom={20}
         minZoom={3}
         scrollWheelZoom={true}
@@ -146,9 +123,6 @@ const PipeMap = ({ pipes }) => {
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <CenterMap pipes={pipes} /> {/* NEW: Dynamically adjust center */}
-        <ZoomListener setShowMarkers={setShowMarkers} />
-
         {/* Render Pipes */}
         {pipes.map((pipe, index) => {
           if (!pipe.line) return null;
@@ -188,31 +162,29 @@ const PipeMap = ({ pipes }) => {
             </Polyline>
           );
         })}
-
         {/* Render Active Water Break Markers */}
-        {showMarkers &&
-          activeWaterBreaks.map((breakInfo, index) =>
-            breakInfo.coordinates ? (
-              <Marker key={index} position={breakInfo.coordinates} icon={createWaterdropIcon()}>
-                <Popup>
-                  <div
-                    style={{
-                      backgroundColor: 'blue',
-                      border: 'none',
-                      padding: '0px',
-                      borderRadius: '20px',
-                      color: 'white',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
-                    <strong>Break Type:</strong> {breakInfo.break_type}
-                  </div>
-                </Popup>
-              </Marker>
-            ) : null
-          )}
-
+        {activeWaterBreaks.map((breakInfo, index) =>
+          breakInfo.coordinates ? (
+            <Marker key={index} position={breakInfo.coordinates} icon={createWaterdropIcon()}>
+              <Popup>
+                <div
+                  style={{
+                    backgroundColor: 'blue',
+                    border: 'none',
+                    padding: '0px',
+                    borderRadius: '20px',
+                    color: 'white',
+                    textAlign: 'center',
+                  }}
+                >
+    
+                  <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
+                  <strong>Break Type:</strong> {breakInfo.break_type}
+                </div>
+              </Popup>
+            </Marker>
+          ) : null
+        )}
         {/* Render Pressure Component */}
         <Pressure data={polygonData} />
       </MapContainer>
