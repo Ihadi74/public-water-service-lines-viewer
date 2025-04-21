@@ -1,11 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
-import Pressure from './Pressure'; // Import the Pressure component
+// PipeMap.jsx
+import React, { useState, useEffect } from 'react';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  Tooltip,
+  useMap
+} from 'react-leaflet';
 import L from 'leaflet';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
 import ReactDOMServer from 'react-dom/server';
+import Pressure from './Pressure'; // Import the Pressure component
 
-// Helper functions for pipes and water breaks
+// ---------------- Helper Functions ----------------
+
+// Returns a color based on the age of the pipe.
 function getAgeColor(installedDate) {
   if (!installedDate) return 'gray';
   const currentYear = new Date().getFullYear();
@@ -17,6 +28,7 @@ function getAgeColor(installedDate) {
   return 'gray';
 }
 
+// Parses a WKT MULTILINESTRING to an array of [lat, lng] coordinate pairs.
 function parseMultiLineString(wkt) {
   const cleaned = wkt.replace('MULTILINESTRING ((', '').replace('))', '');
   return cleaned.split(', ').map((pair) => {
@@ -25,7 +37,7 @@ function parseMultiLineString(wkt) {
   });
 }
 
-// Create custom water break icon using FormatColorResetIcon
+// Creates a custom water break icon using Material UI's FormatColorResetIcon.
 const createWaterdropIcon = () => {
   return L.divIcon({
     className: 'custom-waterdrop-icon',
@@ -34,8 +46,8 @@ const createWaterdropIcon = () => {
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 24px; 
-        height: 24px; 
+        width: 24px;
+        height: 24px;
         background: transparent;
         border-radius: 50%;
         filter: invert(31%) sepia(90%) saturate(500%) hue-rotate(190deg) brightness(1.2);
@@ -48,7 +60,9 @@ const createWaterdropIcon = () => {
   });
 };
 
-// **Fix: Define ZoomListener Outside of PipeMap**
+// ---------------- Custom Map Helpers ----------------
+
+// Listens for zoom changes to conditionally show water break markers.
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
 
@@ -66,34 +80,32 @@ const ZoomListener = ({ setShowMarkers }) => {
   return null;
 };
 
-// **NEW: Center Map Dynamically**
+// Centers the map based on pipe data (if available).
 const CenterMap = ({ pipes }) => {
   const map = useMap();
-
   useEffect(() => {
     if (!pipes || pipes.length === 0) {
-      map.setView([51.045, -114.057], 11); // Default center if no pipes exist
+      map.setView([51.045, -114.057], 11);
       return;
     }
-
     const allCoordinates = pipes.flatMap((pipe) =>
       pipe.line ? parseMultiLineString(pipe.line) : []
     );
-
     if (allCoordinates.length > 0) {
-      map.fitBounds(allCoordinates); // Center dynamically on pipe data
+      map.fitBounds(allCoordinates);
     }
   }, [pipes, map]);
-
   return null;
 };
 
-// Main Map Component
+// ---------------- Main Map Component ----------------
+
 const PipeMap = ({ pipes }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
-  const [polygonData, setPolygonData] = useState([]); // For Pressure polygons
-  const [showMarkers, setShowMarkers] = useState(false); // State for ZoomListener
+  const [polygonData, setPolygonData] = useState([]); // Data for the Pressure component
+  const [showMarkers, setShowMarkers] = useState(false);
 
+  // Fetch water break and polygon data from Calgary's open data APIs.
   useEffect(() => {
     async function fetchWaterBreaks() {
       try {
@@ -129,7 +141,10 @@ const PipeMap = ({ pipes }) => {
     fetchPolygonData();
   }, []);
 
-  const activeWaterBreaks = waterBreaks.filter((breakInfo) => breakInfo.status === 'ACTIVE');
+  // Filter active water break records.
+  const activeWaterBreaks = waterBreaks.filter(
+    (breakInfo) => breakInfo.status === 'ACTIVE'
+  );
 
   return (
     <div style={{ position: 'relative' }}>
@@ -138,18 +153,18 @@ const PipeMap = ({ pipes }) => {
         zoom={10.5}
         maxZoom={20}
         minZoom={3}
-        scrollWheelZoom={true}
-        dragging={true}
+        scrollWheelZoom
+        dragging
         style={{ height: '600px', width: '100%' }}
       >
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <CenterMap pipes={pipes} /> {/* NEW: Dynamically adjust center */}
+        <CenterMap pipes={pipes} />
         <ZoomListener setShowMarkers={setShowMarkers} />
 
-        {/* Render Pipes */}
+        {/* Render pipes as polylines with popup and tooltip information */}
         {pipes.map((pipe, index) => {
           if (!pipe.line) return null;
           const positions = parseMultiLineString(pipe.line);
@@ -160,9 +175,6 @@ const PipeMap = ({ pipes }) => {
                 <div
                   style={{
                     backgroundColor: 'blue',
-                    height: 'auto',
-                    width: 'auto',
-                    border: 'none',
                     padding: '0.5px',
                     borderRadius: '50%',
                     color: 'transparent',
@@ -189,31 +201,37 @@ const PipeMap = ({ pipes }) => {
           );
         })}
 
-        {/* Render Active Water Break Markers */}
+        {/* Render active water break markers */}
         {showMarkers &&
-          activeWaterBreaks.map((breakInfo, index) =>
-            breakInfo.coordinates ? (
-              <Marker key={index} position={breakInfo.coordinates} icon={createWaterdropIcon()}>
-                <Popup>
-                  <div
-                    style={{
-                      backgroundColor: 'blue',
-                      border: 'none',
-                      padding: '0px',
-                      borderRadius: '20px',
-                      color: 'white',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
-                    <strong>Break Type:</strong> {breakInfo.break_type}
-                  </div>
-                </Popup>
-              </Marker>
-            ) : null
+          activeWaterBreaks.map(
+            (breakInfo, index) =>
+              breakInfo.coordinates && (
+                <Marker
+                  key={index}
+                  position={breakInfo.coordinates}
+                  icon={createWaterdropIcon()}
+                >
+                  <Popup>
+                    <div
+                      style={{
+                        backgroundColor: 'blue',
+                        padding: '0px',
+                        borderRadius: '20px',
+                        color: 'white',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <strong>Break Date:</strong>{' '}
+                      {breakInfo.break_date.split('T')[0]}
+                      <br />
+                      <strong>Break Type:</strong> {breakInfo.break_type}
+                    </div>
+                  </Popup>
+                </Marker>
+              )
           )}
 
-        {/* Render Pressure Component */}
+        {/* Render the Pressure overlay (includes the single toggle button) */}
         <Pressure data={polygonData} />
       </MapContainer>
     </div>
