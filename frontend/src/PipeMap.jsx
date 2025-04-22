@@ -128,7 +128,7 @@ const FitBounds = ({ pipes }) => {
 };
 
 // Main Map Component
-const PipeMap = ({ pipes,leakMarker,mapCenter }) => {
+const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
   const [showMarkers, setShowMarkers] = useState(false);
 
@@ -184,16 +184,12 @@ const PipeMap = ({ pipes,leakMarker,mapCenter }) => {
           <Marker position={[leakMarker.lat, leakMarker.lng]}>
             <Popup>
               <span>{leakMarker.address}</span>
-              <LeakReportForm
-                address={leakMarker.address}
-                coordinates={leakMarker.coordinates}
-                setLeakMarker={leakMarker.setMapCenter}
-                setMapCenter={leakMarker.setMapCenter}
-                //selectedCoordinates={leakMarker.selectedCoordinates}
-               //setSelectedCoordinates={setSelectedCoordinates}
-                //coordinates={{ lat: leakMarker.lat, lng: leakMarker.lng }}
-               // address={leakMarker.address}
-              />
+             <LeakReportForm
+  address={leakMarker.address}
+  coordinates={{ lat: leakMarker.lat, lng: leakMarker.lng }}
+  setLeakMarker={leakMarker}
+  setMapCenter={setMapCenter}
+/>
             </Popup>
           </Marker>
         )}
