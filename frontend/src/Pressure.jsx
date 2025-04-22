@@ -1,6 +1,6 @@
 // Pressure.jsx
 import React, { useEffect, useState } from 'react';
-import { Polygon } from 'react-leaflet';
+import { Polygon, Tooltip } from 'react-leaflet';
 
 // Helper function to parse MultiPolygon data (assumes a GeoJSON-like structure)
 function parseMultiPolygon(multiPolygon) {
@@ -81,7 +81,14 @@ const Pressure = ({ data }) => {
                 key={`${index}-${polyIndex}`}
                 positions={polygon}
                 pathOptions={{ color, fillOpacity: 0.5, weight: 2 }}
-              />
+              >
+                {/* Tooltip displays the polygon's zone on hover.
+                    If item.zone is not provided, it falls back to "Unnamed Zone".
+                 */}
+                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                  {item.zone || 'Unnamed Zone'}
+                </Tooltip>
+              </Polygon>
             );
           });
         })}
