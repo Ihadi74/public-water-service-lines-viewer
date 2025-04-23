@@ -1,10 +1,9 @@
-//import Table from "react-bootstrap/Table";
+// DisplayRecords.js
 import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
-import PipeMap from "./PipeMap";
 import "./App.css";
 
-function DisplayRecords({ buildingType, materialType, addressSearch }) {
+function DisplayRecords({ buildingType, materialType, addressSearch, onRowClick }) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -19,7 +18,7 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
           `http://localhost:5001/api/pipes?page=${currentPage}&limit=${limit}&buildingType=${buildingType}&materialType=${materialType}&address=${addressSearch}`
         );
         const data = await response.json();
-        //console.log("API Response:", data);
+        // console.log("API Response:", data);
         setTotalResults(data.total);
         setPipes(data.pipes);
       } catch (error) {
@@ -40,7 +39,7 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
     <p>No data available...</p>
   ) : (
     <>
-      {/* args for Pagination */}
+      {/* Pagination */}
       <Pagination
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
@@ -48,7 +47,6 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
         limit={limit}
       />
 
-     
       <div
         style={{
           maxHeight: "500px",
@@ -79,11 +77,20 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
               <th>Material</th>
               <th>Diameter (mm)</th>
               <th>Installed Date</th>
+              <th>Geo Location</th>
             </tr>
           </thead>
           <tbody>
             {pipes.map((pipe, index) => (
-              <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+              <tr
+                key={index}
+                style={{ borderBottom: "1px solid #ddd", cursor: "pointer" }}
+                onClick={() => {
+                  if (onRowClick) {
+                    onRowClick(pipe);
+                  }
+                }}
+              >
                 <td>{pipe.BUILDING_TYPE}</td>
                 <td>{pipe.WATER_SERVICE_ADDRESS}</td>
                 <td>{pipe.MATERIAL_TYPE}</td>
@@ -100,7 +107,3 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
 }
 
 export default DisplayRecords;
-
-
-
-

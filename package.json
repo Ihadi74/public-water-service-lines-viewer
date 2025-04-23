@@ -1,5 +1,9 @@
 {
   "dependencies": {
+<<<<<<< HEAD
+    "eslint-plugin-jsx-a11y": "^6.10.2"
+=======
     "lodash.debounce": "^4.0.8"
+>>>>>>> 3dd6822a568ef0c846af2f31f18119e98b5611d2
   }
 }
