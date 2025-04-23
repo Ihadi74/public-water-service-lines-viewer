@@ -131,9 +131,14 @@ const CombinedCenterMap = ({ pipes, selectedPipe }) => {
   return null;
 };
 
+<<<<<<< HEAD
 // ---------------- Main Map Component ----------------
 
 const PipeMap = ({ pipes, selectedPipe }) => {
+=======
+// Main Map Component
+const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
+>>>>>>> 3dd6822a568ef0c846af2f31f18119e98b5611d2
   const [waterBreaks, setWaterBreaks] = useState([]);
   const [polygonData, setPolygonData] = useState([]); // For the Pressure overlay
   const [showMarkers, setShowMarkers] = useState(false);
@@ -199,7 +204,25 @@ const PipeMap = ({ pipes, selectedPipe }) => {
         {/* Centering logic */}
         <CombinedCenterMap pipes={pipes} selectedPipe={selectedPipe} />
 
+<<<<<<< HEAD
         {/* Listen for zoom changes to toggle water break markers */}
+=======
+        {leakMarker && (
+          <Marker position={[leakMarker.lat, leakMarker.lng]}>
+            <Popup>
+              <span>{leakMarker.address}</span>
+             <LeakReportForm
+  address={leakMarker.address}
+  coordinates={{ lat: leakMarker.lat, lng: leakMarker.lng }}
+  setLeakMarker={leakMarker}
+  setMapCenter={setMapCenter}
+/>
+            </Popup>
+          </Marker>
+        )}
+
+        <FitBounds pipes={pipes} /> {/* NEW: Dynamically adjust center */}
+>>>>>>> 3dd6822a568ef0c846af2f31f18119e98b5611d2
         <ZoomListener setShowMarkers={setShowMarkers} />
 
         {/* Render pipes as polylines with popups and tooltips */}
