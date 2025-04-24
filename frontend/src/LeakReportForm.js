@@ -14,50 +14,7 @@ const LeakReportForm = ({
   const [contact, setContact] = useState("");
   const [description, setDescription] = useState("");
 
-  const handleSearchAddress = async (address, showAlert = true) => {
-    if (!address || address.trim() === "") {
-      if (showAlert) alert("Please enter a valid address.");
-      return;
-    }
-
-    try {
-      const query = encodeURIComponent(`${address}, Calgary`);
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${query}`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
-
-      if (response.data.length > 0) {
-        const location = response.data[0];
-        setLeakMarker({
-          lat: parseFloat(location.lat),
-          lng: parseFloat(location.lon),
-          address: location.display_name,
-        });
-
-        setMapCenter({ lat: location.lat, lng: location.lon }, 18);
-      } else if (showAlert) {
-        alert("No results found for this address in Calgary.");
-      }
-    } catch (err) {
-      console.error("Geocoding error:", err);
-      if (showAlert) alert("Failed to fetch location. Try again.");
-    }
-  };
-
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (address.trim().length < 5) return;
-      handleSearchAddress(address, false);
-    }, 600);
-
-    return () => clearTimeout(delayDebounce);
-  }, [address]);
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -93,6 +50,9 @@ const LeakReportForm = ({
   return (
     <div style={styles.wrapper}>
       <h3 style={styles.heading}>Water Leak Report Form</h3>
+      <p style={{ fontWeight: "bold", marginBottom: "10px" }}>
+       {address}
+      </p>
       <form onSubmit={handleSubmit} style={styles.form}>
         <label style={styles.label}>Your Name</label>
         <input

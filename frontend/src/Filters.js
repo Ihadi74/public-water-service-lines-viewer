@@ -1,7 +1,13 @@
 import React from "react";
-import "./App.css";
 
-function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSearchAddress }) {
+function Filters({
+  setBuildingType,
+  setMaterialType,
+  setAddressSearch,
+  handleSearchAddress,
+  address,
+  setAddress,
+}) {
   const styleFilters = {
     display: "flex",
     gap: "20px",
@@ -22,11 +28,14 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSea
     border: "1px solid #ccc",
     minWidth: "200px",
   };
-  const handleChange = (e) => {
+
+  // Ensure both address and addressSearch states are updated
+  const handleAddressChange = (e) => {
     const value = e.target.value;
-    setAddressSearch(value);
-    handleSearchAddress(value); // Trigger the address search handler
+    setAddress(value); // Update address state with the input value
+    setAddressSearch(value); // Update addressSearch state for filtering or search
   };
+
   return (
     <div style={styleFilters}>
       {/* Building Type Filter */}
@@ -38,7 +47,7 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSea
         >
           <option value="">All</option>
           <option value="Single Family">Single Family</option>
-          <option value="Multi Family">Multi Family</option>
+          <option value="Triplex">Triplex</option>
           <option value="Duplex">Duplex</option>
           <option value="Commercial">Commercial</option>
         </select>
@@ -52,7 +61,9 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSea
         >
           <option value="">All</option>
           <option value="Copper">Copper</option>
-          <option value="PVC">PVC</option>
+          <option value="Cross-linked Polyethylene (PEX)">
+            Cross-linked Polyethylene (PEX)
+          </option>
           <option value="Lead">Lead</option>
         </select>
       </label>
@@ -63,7 +74,8 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSea
         <input
           type="text"
           placeholder="Enter address"
-          onChange={handleChange}
+          value={address} // Bind to address state
+          onChange={handleAddressChange} // Handle change and update both states
           style={inputStyle}
         />
       </label>
