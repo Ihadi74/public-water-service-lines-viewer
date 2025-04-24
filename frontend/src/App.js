@@ -12,56 +12,61 @@ function App() {
   const [addressSearch, setAddressSearch] = useState("");
 
   const [pipes, setPipes] = useState([]);
-
-  const [leakMarker, setLeakMarker] = useState(null);
+   const [leakMarker, setLeakMarker] = useState(null);
+  const [selectedPipe, setSelectedPipe] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: 51.0447, lng: -114.0719 }); // Default to Calgary
 
-  // Handle search address
-const handleSearchAddress = async (address, showAlert = true) => {
-  if (!address || address.trim() === "") {
-    if (showAlert) alert("Please enter a valid address.");
-    return;
-  }
-
-  try {
-    const query = encodeURIComponent(`${address}, Calgary`);
-    const response = await axios.get(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${query}`,
-    );
-
-    if (response.data.length > 0) {
-      const location = response.data[0];
-      setLeakMarker({
-        lat: parseFloat(location.lat),
-        lng: parseFloat(location.lon),
-        address: location.display_name,
-      });
-
-      setMapCenter({ lat: location.lat, lng: location.lon }, 18);
-    } else if (showAlert) {
-      alert("No results found for this address in Calgary.");
+  // Function to handle address search
+  const handleSearchAddress = async (
+    address,
+    searchValue,
+    showAlert = true
+  ) => {
+    setAddressSearch(searchValue);
+    console.log("Searching for address:", searchValue);
+    if (!address || address.trim() === "") {
+      if (showAlert) alert("Please enter a valid address.");
+      return;
     }
-  } catch (err) {
-    console.error("Geocoding error:", err);
-    if (showAlert) alert("Failed to fetch location. Try again.");
-  }
-};
+    try {
+      const query = encodeURIComponent(`${address}, Calgary`);
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${query}`
+      );
 
-useEffect(() => {
-  const delayDebounce = setTimeout(() => {
-    if (addressSearch.trim().length < 5) return; // Only search after 5 characters
-    handleSearchAddress(addressSearch);
-  }, 600); // Wait 600ms after typing stops
+      if (response.data.length > 0) {
+        const location = response.data[0];
+        setLeakMarker({
+          lat: parseFloat(location.lat),
+          lng: parseFloat(location.lon),
+          address: location.display_name,
+        });
 
-  return () => clearTimeout(delayDebounce);
-}, [addressSearch]);
+        setMapCenter({ lat: location.lat, lng: location.lon }, 18);
+      } else if (showAlert) {
+        alert("No results found for this address in Calgary.");
+      }
+    } catch (err) {
+      console.error("Geocoding error:", err);
+      if (showAlert) alert("Failed to fetch location. Try again.");
+    }
+  };
 
-  
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (addressSearch.trim().length < 5) return; // Only search after 5 characters
+      handleSearchAddress(addressSearch);
+    }, 600); // Wait 600ms after typing stops
+
+    return () => clearTimeout(delayDebounce);
+  }, [addressSearch]);
+
+
 
   useEffect(() => {
     const fetchPipes = async () => {
       try {
-        const response = await axios.get("http://localhost:5001/api/pipes", {
+        const response = await axios.get("localhost:5001/api/pipes", {
           params: {
             buildingType,
             materialType,
@@ -76,6 +81,13 @@ useEffect(() => {
 
     fetchPipes();
   }, [buildingType, materialType, addressSearch]);
+
+  // This function is called when a row is clicked in DisplayRecords.
+  // It updates the selectedPipe state so that the map centers on that pipe's address.
+  const handleRowClick = (pipe) => {
+    setSelectedPipe(pipe);
+    console.log("Row clicked:", pipe);
+  };
 
   return (
     <>
@@ -101,9 +113,14 @@ useEffect(() => {
           justifyContent: "space-between",
         }}
       >
-        {/* Map and Table */}
+        {/* The Map container is exclusively in PipeMap.js */}
         <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
-          <PipeMap pipes={pipes} leakMarker={leakMarker} mapCenter={mapCenter} />
+          <PipeMap
+            pipes={pipes}
+            selectedPipe={selectedPipe}
+            leakMarker={leakMarker}
+            mapCenter={mapCenter}
+          />
         </div>
 
         <div
@@ -116,6 +133,7 @@ useEffect(() => {
             buildingType={buildingType}
             materialType={materialType}
             addressSearch={addressSearch}
+            onRowClick={handleRowClick}
           />
         </div>
       </div>

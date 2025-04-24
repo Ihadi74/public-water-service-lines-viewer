@@ -4,7 +4,7 @@ import Pagination from "./Pagination";
 import PipeMap from "./PipeMap";
 import "./App.css";
 
-function DisplayRecords({ buildingType, materialType, addressSearch }) {
+function DisplayRecords({ buildingType, materialType, addressSearch, onRowClick }) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -81,18 +81,25 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
               <th>Installed Date</th>
             </tr>
           </thead>
-          <tbody>
-            {pipes.map((pipe, index) => (
-              <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
-                <td>{pipe.BUILDING_TYPE}</td>
-                <td>{pipe.WATER_SERVICE_ADDRESS}</td>
-                <td>{pipe.MATERIAL_TYPE}</td>
-                <td>{pipe["PIPE_DIAMETER (mm)"]}</td>
-                <td>{pipe.INSTALLED_DATE}</td>
-                <td>{pipe.GEO_LOCATION}</td>
-              </tr>
-            ))}
-          </tbody>
+            <tbody>
+          {pipes.map((pipe, index) => (
+          <tr  key={index}
+            style={{ borderBottom: "1px solid #ddd", cursor: "pointer" }}
+            onClick={() => {
+              if (onRowClick) {
+                onRowClick(pipe);
+              }
+            }}
+          >
+            <td>{pipe.BUILDING_TYPE}</td>
+            <td>{pipe.WATER_SERVICE_ADDRESS}</td>
+            <td>{pipe.MATERIAL_TYPE}</td>
+            <td>{pipe["PIPE_DIAMETER (mm)"]}</td>
+            <td>{pipe.INSTALLED_DATE}</td>
+            <td>{pipe.GEO_LOCATION}</td>
+          </tr>
+        ))}
+        </tbody>
         </table>
       </div>
     </>

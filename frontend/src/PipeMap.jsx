@@ -1,5 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
+
+import React, { useState, useEffect } from 'react';
+import {
+MapContainer,
+TileLayer,
+Marker,
+Popup,
+Polyline,
+Tooltip,
+useMap,
+} from 'react-leaflet';
 import L from 'leaflet';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset'; // Import Material UI icon
 import ReactDOMServer from 'react-dom/server'; // Import ReactDOMServer for rendering React components as HTML strings
@@ -62,9 +71,21 @@ const parseMultiLineString = (wkt) => {
   // Split into coordinate pairs
   return cleaned.split(", ").map((pair) => {
     const [lng, lat] = pair.trim().split(" ").map(Number);
-    return [lat, lng]; // Leaflet uses [lat, lng]
-  });
-};
+return [lat, lng];
+});
+}
+
+
+// Parses a GEO_LOCATION string (e.g., "51.045, -114.057") into a [lat, lng] array.
+function parseGeoLocation(geoString) {
+if (!geoString) return null;
+const parts = geoString.split(",").map((p) => parseFloat(p.trim()));
+if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+return parts;
+}
+return null;
+}
+
 
 // Create custom water break icon using FormatColorResetIcon
 const createWaterdropIcon = () => {
@@ -89,7 +110,11 @@ const createWaterdropIcon = () => {
   });
 };
 
-// Component for handling map zoom changes
+
+// ---------------- Custom Map Helpers ----------------
+
+
+// Listens for zoom changes to conditionally show water break markers.
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
   useEffect(() => {
@@ -105,45 +130,70 @@ const ZoomListener = ({ setShowMarkers }) => {
   return null;
 };
 
-// **NEW: Center Map Dynamically**
-const FitBounds = ({ pipes }) => {
-  const map = useMap();
 
+/*
+CombinedCenterMap:
+
+If a selected pipe is provided:
+• If it has a line property, parse and fit bounds using its line data.
+• Otherwise, if it has a GEO_LOCATION field, center the map on that coordinate at zoom level 17.
+If no selected pipe is provided, try to fit bounds around all pipes that have line data.
+If none of these are available, fall back to a default view.
+*/
+const CombinedCenterMap = ({ pipes, selectedPipe }) => {
+  const map = useMap();
   useEffect(() => {
-    if (!pipes || pipes.length === 0) {
-      map.setView([51.045, -114.057], 11); // Default center if no pipes exist
+if (selectedPipe) {
+if (selectedPipe.line) {
+const coordinates = parseMultiLineString(selectedPipe.line);
+if (coordinates.length > 0) {
+map.fitBounds(coordinates, { maxZoom: 17 });
+return;
+}
+}
+const coords = parseGeoLocation(selectedPipe.GEO_LOCATION);
+if (coords) {
+map.setView(coords, 17);
       return;
     }
-
-    const allCoordinates = pipes.flatMap((pipe) =>
+}
+if (pipes && pipes.length > 0) {
+const allCoordinates = pipes.flatMap(pipe =>
       pipe.line ? parseMultiLineString(pipe.line) : []
     );
-
     if (allCoordinates.length > 0) {
-      map.fitBounds(allCoordinates); // Center dynamically on pipe data
+map.fitBounds(allCoordinates, { maxZoom: 17 });
+return;
+}
     }
-  }, [pipes, map]);
+// Fallback view.
+map.setView([51.045, -114.057], 10);
+}, [pipes, selectedPipe, map]);
+
 
   return null;
 };
 
-// Main Map Component
-const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
+
+// ---------------- Main Map Component ----------------
+
+
+const PipeMap = ({ pipes, selectedPipe }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
+const [polygonData, setPolygonData] = useState([]); // For the Pressure overlay
   const [showMarkers, setShowMarkers] = useState(false);
 
-  // Fetch water break data separately
+//Fetch water break data
   useEffect(() => {
-    
     async function fetchWaterBreaks() {
       if (!Array.isArray(pipes)) {
     return <p>Loading map data...</p>;
   }
       try {
-        const response = await fetch('https://data.calgary.ca/resource/dpcu-jr23.json');
+const response = await fetch('http://data.calgary.ca/resource/dpcu-jr23.json');
         if (!response.ok) throw new Error('Failed to fetch water break data');
         const data = await response.json();
-        const formattedData = data.map((breakInfo) => ({
+const formattedData = data.map(breakInfo => ({
           break_date: breakInfo.break_date,
           break_type: breakInfo.break_type,
           status: breakInfo.status,
@@ -156,7 +206,22 @@ const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
         console.error('Error fetching water breaks:', error);
       }
     }
+
+
+// Fetch polygon data for Pressure overlay  
+async function fetchPolygonData() {  
+  try {  
+    const response = await fetch('https://data.calgary.ca/resource/xn3q-y49u.json');  
+    if (!response.ok) throw new Error('Failed to fetch polygon data');  
+    const data = await response.json();  
+    setPolygonData(data);  
+  } catch (error) {  
+    console.error('Error fetching polygon data:', error);  
+  }  
+}
+
     fetchWaterBreaks();
+fetchPolygonData();  
   }, []);
 
   // Filter water breaks to only include active ones
@@ -165,12 +230,12 @@ const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
   return (
     <div style={{ position: 'relative' }}>
       <MapContainer
-        center={[51.045, -114.057]}
-        zoom={11}
+center={[51.0443, -114.0631]}
+zoom={10.5}
         maxZoom={20}
         minZoom={3}
-        scrollWheelZoom={true}
-        dragging={true}
+scrollWheelZoom
+dragging
         style={{ height: '600px', width: '100%' }}
       >
         <TileLayer
@@ -196,15 +261,28 @@ const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
 
         <FitBounds pipes={pipes} /> {/* NEW: Dynamically adjust center */}
         <ZoomListener setShowMarkers={setShowMarkers} />
-        {/* Render Pipes */}
+
+    {/* Render pipes as polylines with popups and tooltips */}  
         {pipes.map((pipe, index) => {
           if (!pipe.line) return null;
           const positions = parseMultiLineString(pipe.line);
           const color = getAgeColor(pipe.INSTALLED_DATE);
           return (
-            <Polyline key={index} positions={positions} pathOptions={{ color, weight: 6 }}>
+        <Polyline  
+          key={index}  
+          positions={positions}  
+          pathOptions={{ color, weight: 6 }}  
+        >  
               <Popup>
-                
+            <div  
+              style={{  
+                backgroundColor: 'blue',  
+                padding: '0.5px',  
+                borderRadius: '50%',  
+                color: 'transparent',  
+                textAlign: 'center'  
+              }}  
+            >  
                   <strong>{pipe.BUILDING_TYPE}</strong>
                   <br />
                   {pipe.WATER_SERVICE_ADDRESS}
@@ -224,29 +302,38 @@ const PipeMap = ({ pipes,leakMarker,setMapCenter }) => {
             </Polyline>
           );
         })}
-        {/* Render Active Water Break Markers */}
+
+    {/* Render active water break markers */}  
         {showMarkers &&
-          activeWaterBreaks.map((breakInfo, index) =>
-            breakInfo.coordinates ? (
-              <Marker key={index} position={breakInfo.coordinates} icon={createWaterdropIcon()}>
+      [activeWaterBreaks.map]((breakInfo, index) => (  
+        breakInfo.coordinates && (  
+          <Marker  
+            key={index}  
+            position={breakInfo.coordinates}  
+            icon={createWaterdropIcon()}  
+          >  
                 <Popup>
                   <div
                     style={{
                       backgroundColor: 'blue',
-                      border: 'none',
                       padding: '0px',
                       borderRadius: '20px',
                       color: 'white',
-                      textAlign: 'center',
+                  textAlign: 'center'  
                     }}
                   >
-                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
+                <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]}  
+                <br />  
                     <strong>Break Type:</strong> {breakInfo.break_type}
                   </div>
                 </Popup>
               </Marker>
-            ) : null
-          )}
+        )  
+      ))  
+    }
+
+    {/* Render the Pressure overlay */}  
+    <Pressure data={polygonData} />  
       </MapContainer>
 
         {/* Legend (outside the map container) */}
