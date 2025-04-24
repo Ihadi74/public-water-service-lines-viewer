@@ -79,7 +79,7 @@ const ZoomListener = ({ setShowMarkers }) => {
   useEffect(() => {
     const onZoom = () => {
       const zoomLevel = map.getZoom();
-      setShowMarkers(zoomLevel === 17);
+      setShowMarkers(zoomLevel >= 15);
     };
     map.on('zoomend', onZoom);
     return () => {
@@ -88,7 +88,6 @@ const ZoomListener = ({ setShowMarkers }) => {
   }, [map, setShowMarkers]);
   return null;
 };
-
 /*
   CombinedCenterMap:
   - If a selected pipe is provided:
@@ -97,7 +96,7 @@ const ZoomListener = ({ setShowMarkers }) => {
   - If no selected pipe is provided, try to fit bounds around all pipes that have line data.
   - If none of these are available, fall back to a default view.
 */
-const CombinedCenterMap = ({ pipes, selectedPipe }) => {
+function CombinedCenterMap({ pipes, selectedPipe }) {
   const map = useMap();
 
   useEffect(() => {
@@ -116,8 +115,7 @@ const CombinedCenterMap = ({ pipes, selectedPipe }) => {
       }
     }
     if (pipes && pipes.length > 0) {
-      const allCoordinates = pipes.flatMap(pipe =>
-        pipe.line ? parseMultiLineString(pipe.line) : []
+      const allCoordinates = pipes.flatMap(pipe => pipe.line ? parseMultiLineString(pipe.line) : []
       );
       if (allCoordinates.length > 0) {
         map.fitBounds(allCoordinates, { maxZoom: 17 });
@@ -129,7 +127,7 @@ const CombinedCenterMap = ({ pipes, selectedPipe }) => {
   }, [pipes, selectedPipe, map]);
 
   return null;
-};
+}
 
 // ---------------- Main Map Component ----------------
 
