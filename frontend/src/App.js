@@ -1,3 +1,4 @@
+// App.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PipeMap from "./PipeMap";
@@ -10,7 +11,6 @@ function App() {
   const [buildingType, setBuildingType] = useState("");
   const [materialType, setMaterialType] = useState("");
   const [addressSearch, setAddressSearch] = useState("");
-
   const [pipes, setPipes] = useState([]);
   const [leakMarker, setLeakMarker] = useState(null);
   const [selectedPipe, setSelectedPipe] = useState(null);
@@ -96,6 +96,7 @@ function App() {
         }}
       >
         {/* The Map container is exclusively in PipeMap.js */}
+        {/* The Map container is exclusively in PipeMap.js */}
         <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
           <PipeMap
             pipes={pipes}
@@ -105,16 +106,14 @@ function App() {
           />
         </div>
 
-        <div
-          style={{
-            flex: "1 1 45%",
-            overflowY: "auto",
-          }}
-        >
+        {/* The records table is rendered by DisplayRecords,
+            which now receives an onRowClick callback */}
+        <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
           <DisplayRecords
             buildingType={buildingType}
             materialType={materialType}
             addressSearch={addressSearch}
+            onRowClick={handleRowClick}
             onRowClick={handleRowClick}
           />
         </div>
