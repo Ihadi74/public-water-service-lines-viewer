@@ -5,58 +5,14 @@ import axios from "axios";
 
 const LeakReportForm = ({
   address,
-  coordinates,
   setLeakMarker,
   setMapCenter,
+  handleSearchAddress,
 }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contact, setContact] = useState("");
   const [description, setDescription] = useState("");
-
-  const handleSearchAddress = async (address, showAlert = true) => {
-    if (!address || address.trim() === "") {
-      if (showAlert) alert("Please enter a valid address.");
-      return;
-    }
-
-    try {
-      const query = encodeURIComponent(`${address}, Calgary`);
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${query}`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        }
-      );
-
-      if (response.data.length > 0) {
-        const location = response.data[0];
-        setLeakMarker({
-          lat: parseFloat(location.lat),
-          lng: parseFloat(location.lon),
-          address: location.display_name,
-        });
-
-        setMapCenter({ lat: location.lat, lng: location.lon }, 18);
-      } else if (showAlert) {
-        alert("No results found for this address in Calgary.");
-      }
-    } catch (err) {
-      console.error("Geocoding error:", err);
-      if (showAlert) alert("Failed to fetch location. Try again.");
-    }
-  };
-
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (address.trim().length < 5) return;
-      handleSearchAddress(address, false);
-    }, 600);
-
-    return () => clearTimeout(delayDebounce);
-  }, [address]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

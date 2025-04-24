@@ -1,7 +1,12 @@
-import React from "react";
-import "./App.css";
 
-function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSearchAddress }) {
+import React from "react";
+
+function Filters({
+  setBuildingType,
+  setMaterialType,
+  setAddressSearch,
+  handleSearchAddress,
+}) {
   const styleFilters = {
     display: "flex",
     gap: "20px",
@@ -22,11 +27,13 @@ function Filters({ setBuildingType, setMaterialType, setAddressSearch, handleSea
     border: "1px solid #ccc",
     minWidth: "200px",
   };
+
   const handleChange = (e) => {
     const value = e.target.value;
     setAddressSearch(value);
     handleSearchAddress(value); // Trigger the address search handler
   };
+
   return (
     <div style={styleFilters}>
       {/* Building Type Filter */}

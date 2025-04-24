@@ -1,36 +1,15 @@
 import React, { useEffect, useState } from 'react';
-
-
 import { Polygon, Tooltip } from 'react-leaflet';
 
-
-
-
 // Helper function to parse MultiPolygon data (assumes a GeoJSON-like structure)
-
-
 function parseMultiPolygon(multiPolygon) {
-
-
 if (!multiPolygon || multiPolygon.type !== 'MultiPolygon') return [];
-
-
 return multiPolygon.coordinates.map((polygon) =>
-
-
 polygon[0].map((point) => [point[1], point[0]]) // Convert [lng, lat] to [lat, lng]
-
 );
-
-
 }
 
-
-
-
 // Helper function to generate a random hex color for styling polygons
-
-
 function generateRandomColor() {
 
 
@@ -53,11 +32,7 @@ return color;
 
 }
 
-
-
-
 /*
-
 
 Cycle state definition:
 
@@ -70,22 +45,10 @@ Cycle state definition:
    On press, shows the polygons (advances to state 0).
 
 */
-
-
 const Pressure = ({ data }) => {
-
-
 const [cycle, setCycle] = useState(0);
-
-
-
-
 // Auto-hide effect: while polygons are visible (cycle 0 or 1), automatically hide them after 8 seconds.
-
-
 useEffect(() => {
-
-
 if (cycle === 0 || cycle === 1) {
   const timer = setTimeout(() => {
     setCycle(2);
