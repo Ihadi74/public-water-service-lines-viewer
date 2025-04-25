@@ -22,37 +22,37 @@ function generateRandomColor() {
 const Pressure = ({ data }) => {
   const [cycle, setCycle] = useState(0);
 
-  // Auto-transition from "Troubleshoot" (state 1) back to "Show Pressure Zone" (state 0) after 8 seconds
+  // Auto-transition from state 1 back to state 0 after 8 seconds.
   useEffect(() => {
     if (cycle === 1) {
       const timer = setTimeout(() => {
-        setCycle(0); // Reset to state 0 after timeout
-      }, 8000);
+        setCycle(0);
+      }, 18000);
       return () => clearTimeout(timer);
     }
   }, [cycle]);
 
   if (!data || data.length === 0) return null;
 
-  // Only render polygons when in the "Show" state (cycle 1).
+  // Polygons are visible only when cycle === 1.
   const polygonsVisible = cycle === 1;
 
-  const handleToggle = () => {
-    if (cycle === 0) {
-      // State 0: "Not Show" – clicking here will change to "Show Pressure Zone"
-      setCycle(1);
-    } else if (cycle === 1) {
-      // State 1: "Troubleshoot" – clicking opens troubleshooting link and cycles back to "Not Show"
-      window.open(
-        'https://www.calgary.ca/water/drinking-water/water-pressure.html',
-        '_blank'
-      );
-      setCycle(0);
-    }
+  // Button Handlers
+  const handleShow = () => {
+    setCycle(1);
   };
 
-  // Set the button's label based on the current cycle.
-  const buttonLabel = cycle === 0 ? 'Show Pressure Zone' : 'Troubleshoot';
+  const handleTroubleshoot = () => {
+    window.open(
+      'https://www.calgary.ca/water/drinking-water/water-pressure.html',
+      '_blank'
+    );
+    setCycle(0);
+  };
+
+  const handleHidePressureZone = () => {
+    setCycle(0);
+  };
 
   return (
     <>
@@ -68,22 +68,31 @@ const Pressure = ({ data }) => {
                 positions={polygon}
                 pathOptions={{ color, fillOpacity: 0.5, weight: 2 }}
               >
-                {/* Tooltip displays the polygon's zone on hover.
-                    If item.zone is not provided, it falls back to "Unnamed Zone". */}
                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                   {item.zone || 'Unnamed Zone'}
                 </Tooltip>
               </Polygon>
             );
           });
-        })
-      }
+        })}
 
       {/* Toggle Button positioned in the Leaflet map container */}
       <div className="toggle-container">
-        <button className="toggle-button" onClick={handleToggle}>
-          {buttonLabel}
-        </button>
+        {cycle === 0 && (
+          <button className="toggle-button" onClick={handleShow}>
+            Show Pressure Zone
+          </button>
+        )}
+        {cycle === 1 && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="toggle-button" onClick={handleTroubleshoot}>
+              Troubleshoot
+            </button>
+            <button className="toggle-button" onClick={handleHidePressureZone}>
+              Hide Pressure Zone
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Inline CSS styles for positioning and button styling */}
@@ -97,7 +106,7 @@ const Pressure = ({ data }) => {
           padding: 10px;
         }
         .toggle-button {
-          padding: 10px 20px;
+          padding: 6px 12px;
           background-color: transparent;
           border: none;
           border-radius: 4px;
