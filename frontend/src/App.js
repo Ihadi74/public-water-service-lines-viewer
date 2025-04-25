@@ -4,6 +4,7 @@ import PipeMap from "./PipeMap";
 import DisplayRecords from "./DisplayRecords";
 import Filters from "./Filters";
 import Header from "./Header";
+import NotificationButton from "./NotificationButton";
 
 function App() {
   const [buildingType, setBuildingType] = useState("");
@@ -86,6 +87,7 @@ function App() {
             addressSearch={addressSearch}
           />
         </div>
+        <NotificationButton/>
       </div>
     </>
   );

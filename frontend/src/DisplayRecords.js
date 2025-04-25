@@ -3,7 +3,19 @@ import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 import "./App.css";
 
-function DisplayRecords({ buildingType, materialType, addressSearch, setSelectedPipe }) {
+// Helper function to format the date
+function formatDate(dateString) {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", options); // Format as "November 10, 2021"
+}
+
+function DisplayRecords({
+  buildingType,
+  materialType,
+  addressSearch,
+  setSelectedPipe,
+}) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -39,8 +51,6 @@ function DisplayRecords({ buildingType, materialType, addressSearch, setSelected
     <p>No data available...</p>
   ) : (
     <>
-      {/* args for Pagination */}
-
       <div
         style={{
           maxHeight: "500px",
@@ -54,18 +64,13 @@ function DisplayRecords({ buildingType, materialType, addressSearch, setSelected
           style={{
             width: "100%",
             borderCollapse: "collapse",
+            fontSize: "16px",
           }}
         >
           <thead
-            style={{
-              position: "sticky",
-              top: "0",
-              backgroundColor: "#007bff",
-              color: "white",
-              zIndex: "2",
-            }}
+          
           >
-            <tr style={{ backgroundColor: "#007bff", color: "white" }}>
+            <tr>
               <th>Building Type</th>
               <th>Address</th>
               <th>Material</th>

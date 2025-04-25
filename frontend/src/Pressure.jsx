@@ -126,3 +126,7 @@ const Pressure = ({ data }) => {
 
 export default Pressure;
 
+
+
+
+

@@ -13,7 +13,7 @@ function Pagination({ currentPage, setCurrentPage, totalResults, limit }) {
   if (!totalResults) return null; 
 
   return (
-    <div style={{ textAlign: "right", marginTop: "20px", marginBottom: "20px" }}>
+    <div style={{ textAlign: "right", marginTop: "20px", marginBottom: "20px", marginRight: "45px" }}>
       <button
         onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
         disabled={currentPage === 1}
