@@ -9,9 +9,10 @@ function App() {
   const [buildingType, setBuildingType] = useState("");
   const [materialType, setMaterialType] = useState("");
   const [addressSearch, setAddressSearch] = useState("");
-  
+
   const [pipes, setPipes] = useState([]);
-  const [address, setAddress] = useState(""); // Added missing state
+  const [address, setAddress] = useState("");
+  const [leakMarker, setLeakMarker] = useState(null); // Added state for leakMarker
 
   const handleSearchAddress = () => {
     console.log("Searching for address:", address);
@@ -33,15 +34,15 @@ function App() {
         console.error("Failed to fetch pipes:", error);
       }
     };
-  
+
     fetchPipes();
-  
+
     // Cleanup function (if needed)
     return () => {
       console.log("Component unmounted, cleanup here!");
     };
   }, [buildingType, materialType, addressSearch]);
-  
+
   return (
     <>
       <Header
@@ -59,20 +60,21 @@ function App() {
         address={address}
       />
 
-      <div style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "20px",
-        padding: "20px",
-        justifyContent: "space-between"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "20px",
+          padding: "20px",
+          justifyContent: "space-between",
+        }}
+      >
         {/* Map and Table */}
         <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
           <PipeMap
             pipes={pipes}
-            leakMarker={leakMarker}
-            setLeakMarker={setLeakMarker}
-            //setMapCenter={setMapCenter}
+            leakMarker={leakMarker} // Pass the leakMarker state
+            setLeakMarker={setLeakMarker} // Pass the setLeakMarker function
             address={address}
           />
         </div>
