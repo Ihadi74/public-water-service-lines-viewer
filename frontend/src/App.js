@@ -6,18 +6,13 @@ import DisplayRecords from "./DisplayRecords";
 import Filters from "./Filters";
 import Header from "./Header";
 
+
 function App() {
   const [buildingType, setBuildingType] = useState("");
-  const [materialType, setMaterialType] = useState("");
-  const [addressSearch, setAddressSearch] = useState("");
-  const [pipes, setPipes] = useState([]);
-  const [selectedPipe, setSelectedPipe] = useState(null);
-
-  // Function to handle address search
-  const handleSearchAddress = (searchValue) => {
-    setAddressSearch(searchValue);
-    console.log("Searching for address:", searchValue);
-  };
+ const [materialType, setMaterialType] = useState("");
+ const [addressSearch, setAddressSearch] = useState("");
+ 
+ const [pipes, setPipes] = useState([]);
 
   useEffect(() => {
     const fetchPipes = async () => {
@@ -38,13 +33,6 @@ function App() {
     fetchPipes();
   }, [buildingType, materialType, addressSearch]);
 
-  // This function is called when a row is clicked in DisplayRecords.
-  // It updates the selectedPipe state so that the map centers on that pipe's address.
-  const handleRowClick = (pipe) => {
-    setSelectedPipe(pipe);
-    console.log("Row clicked:", pipe);
-  };
-
   return (
     <>
       <Header
@@ -58,32 +46,34 @@ function App() {
         setMaterialType={setMaterialType}
         setAddressSearch={setAddressSearch}
         handleSearchAddress={handleSearchAddress}
+        setAddress={setAddress}
+        address={address}
       />
+
+<div style={{
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "20px",
+  padding: "20px",
+  justifyContent: "space-between"
+}}>
+      {/* Map and Table */}
+      <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
+        <PipeMap pipes={pipes} />
+      </div>
 
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "20px",
-          padding: "20px",
-          justifyContent: "space-between",
+          flex: "1 1 45%",
+          overflowY: "auto",
         }}
       >
-        {/* The Map container is exclusively in PipeMap.js */}
-        <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
-          <PipeMap pipes={pipes} selectedPipe={selectedPipe} />
-        </div>
-
-        {/* The records table is rendered by DisplayRecords,
-            which now receives an onRowClick callback */}
-        <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
-          <DisplayRecords
-            buildingType={buildingType}
-            materialType={materialType}
-            addressSearch={addressSearch}
-            onRowClick={handleRowClick}
-          />
-        </div>
+        <DisplayRecords
+          buildingType={buildingType}
+          materialType={materialType}
+          addressSearch={addressSearch}
+        />
+      </div>
       </div>
     </>
   );
