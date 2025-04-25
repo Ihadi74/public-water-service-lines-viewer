@@ -5,7 +5,7 @@ import FormatColorResetIcon from '@mui/icons-material/FormatColorReset'; // Impo
 import ReactDOMServer from 'react-dom/server'; // Import ReactDOMServer for rendering React components as HTML strings
 import LeakReportForm from './LeakReportForm'; // Import the LeakReportForm component
 import 'leaflet/dist/leaflet.css'
-import Pressure from './Pressure';  
+import Pressure from './Pressure'; 
 
 
 
@@ -118,18 +118,22 @@ return this.props.children;
 // Component for handling map zoom changes
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
+
   useEffect(() => {
     const onZoom = () => {
       const zoomLevel = map.getZoom();
-      setShowMarkers(zoomLevel === 17);
+      setShowMarkers(zoomLevel >= 15);
     };
+
     map.on('zoomend', onZoom);
     return () => {
       map.off('zoomend', onZoom);
     };
   }, [map, setShowMarkers]);
+
   return null;
 };
+
 
 // **NEW: Center Map Dynamically**
 const CenterMap = ({ pipes,selectedPipe }) => {
