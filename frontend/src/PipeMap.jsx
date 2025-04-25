@@ -121,7 +121,7 @@ const ZoomListener = ({ setShowMarkers }) => {
   useEffect(() => {
     const onZoom = () => {
       const zoomLevel = map.getZoom();
-      setShowMarkers(zoomLevel === 17);
+      setShowMarkers(zoomLevel >= 15);
     };
     map.on('zoomend', onZoom);
     return () => {
