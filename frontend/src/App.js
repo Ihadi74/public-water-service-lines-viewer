@@ -68,7 +68,13 @@ function App() {
       }}>
         {/* Map and Table */}
         <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
-          <PipeMap pipes={pipes} />
+          <PipeMap
+            pipes={pipes}
+            leakMarker={leakMarker}
+            setLeakMarker={setLeakMarker}
+            //setMapCenter={setMapCenter}
+            address={address}
+          />
         </div>
 
         <div style={{ flex: "1 1 45%", overflowY: "auto" }}>

@@ -102,6 +102,13 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+const parseGeoLocation = (geoString) => {
+  if (!geoString) return null;
+
+  return geoString.split(",").map(Number);
+};
+
+
 
 // Component to center the map on a leak marker
 const CenterOnLeak = ({ leakMarker }) => {
@@ -153,17 +160,30 @@ const CombinedCenterMap = ({ pipes, selectedPipe }) => {
     } catch (error) {
       console.error("Error in CombinedCenterMap:", error);
     }
-  }, [pipes, selectedPipe, map]);
+  }, [pipes, map, selectedPipe]);
+
   return null;
 };
 
-// Main PipeMap Component
-// Accepts props: pipes, selectedPipe, leakMarker, setLeakMarker.
-// Water break data and pressure data are fetched within this component.
-const PipeMap = ({ pipes, selectedPipe, leakMarker, setLeakMarker }) => {
+const CenterOnLeak = ({ leakMarker }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (leakMarker) {
+      map.setView([leakMarker.lat, leakMarker.lng], 18);
+    }
+  }, [leakMarker, map]);
+
+  return null;
+};
+
+
+// Main Map Component
+const PipeMap = ({ pipes, selectedPipe, leakMarker, address, setLeakMarker }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
   const [polygonData, setPolygonData] = useState([]);
   const [showMarkers, setShowMarkers] = useState(false);
+  const [polygonData, setPolygonData] = useState([]); // State for polygon data
 
   // Fetch water break and pressure data
   useEffect(() => {

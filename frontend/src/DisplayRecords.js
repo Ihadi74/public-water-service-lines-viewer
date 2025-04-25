@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 import "./App.css";
 
-function DisplayRecords({ buildingType, materialType, addressSearch, onRowClick }) {
+function DisplayRecords({ buildingType, materialType, addressSearch, setSelectedPipe }) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -39,13 +39,7 @@ function DisplayRecords({ buildingType, materialType, addressSearch, onRowClick 
     <p>No data available...</p>
   ) : (
     <>
-      {/* Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        totalResults={totalResults}
-        limit={limit}
-      />
+      {/* args for Pagination */}
 
       <div
         style={{
@@ -102,6 +96,12 @@ function DisplayRecords({ buildingType, materialType, addressSearch, onRowClick 
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        totalResults={totalResults}
+        limit={limit}
+      />
     </>
   );
 }
