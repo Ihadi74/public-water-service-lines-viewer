@@ -1,4 +1,3 @@
-// App.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import PipeMap from "./PipeMap";
@@ -6,13 +5,18 @@ import DisplayRecords from "./DisplayRecords";
 import Filters from "./Filters";
 import Header from "./Header";
 
-
 function App() {
   const [buildingType, setBuildingType] = useState("");
- const [materialType, setMaterialType] = useState("");
- const [addressSearch, setAddressSearch] = useState("");
- 
- const [pipes, setPipes] = useState([]);
+  const [materialType, setMaterialType] = useState("");
+  const [addressSearch, setAddressSearch] = useState("");
+  
+  const [pipes, setPipes] = useState([]);
+  const [address, setAddress] = useState(""); // Added missing state
+
+  const handleSearchAddress = () => {
+    console.log("Searching for address:", address);
+    // Implement search logic if needed
+  };
 
   useEffect(() => {
     const fetchPipes = async () => {
@@ -29,10 +33,15 @@ function App() {
         console.error("Failed to fetch pipes:", error);
       }
     };
-
+  
     fetchPipes();
+  
+    // Cleanup function (if needed)
+    return () => {
+      console.log("Component unmounted, cleanup here!");
+    };
   }, [buildingType, materialType, addressSearch]);
-
+  
   return (
     <>
       <Header
@@ -50,30 +59,25 @@ function App() {
         address={address}
       />
 
-<div style={{
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "20px",
-  padding: "20px",
-  justifyContent: "space-between"
-}}>
-      {/* Map and Table */}
-      <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
-        <PipeMap pipes={pipes} />
-      </div>
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "20px",
+        padding: "20px",
+        justifyContent: "space-between"
+      }}>
+        {/* Map and Table */}
+        <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
+          <PipeMap pipes={pipes} />
+        </div>
 
-      <div
-        style={{
-          flex: "1 1 45%",
-          overflowY: "auto",
-        }}
-      >
-        <DisplayRecords
-          buildingType={buildingType}
-          materialType={materialType}
-          addressSearch={addressSearch}
-        />
-      </div>
+        <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
+          <DisplayRecords
+            buildingType={buildingType}
+            materialType={materialType}
+            addressSearch={addressSearch}
+          />
+        </div>
       </div>
     </>
   );
