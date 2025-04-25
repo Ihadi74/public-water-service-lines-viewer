@@ -4,7 +4,7 @@ import Pagination from "./Pagination";
 //import PipeMap from "./PipeMap";
 import "./App.css";
 
-function DisplayRecords({ buildingType, materialType, addressSearch }) {
+function DisplayRecords({ buildingType, materialType, addressSearch, setSelectedPipe }) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -41,14 +41,7 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
   ) : (
     <>
       {/* args for Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        totalResults={totalResults}
-        limit={limit}
-      />
 
-     
       <div
         style={{
           maxHeight: "500px",
@@ -95,6 +88,12 @@ function DisplayRecords({ buildingType, materialType, addressSearch }) {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        totalResults={totalResults}
+        limit={limit}
+      />
     </>
   );
 }

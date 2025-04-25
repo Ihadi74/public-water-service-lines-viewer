@@ -1,8 +1,12 @@
 
 async function fetchWaterBreaks() {
   try {
-    const response = await fetch('/api/waterBreaks'); // Replace with your actual API endpoint
-    if (!response.ok) throw new Error('Failed to fetch water break data');
+   const response = await fetch(
+     "https://data.calgary.ca/resource/dpcu-jr23.json"
+   );
+   if (!response.ok) {
+     throw new Error(`HTTP error! status: ${response.status}`);
+   }
 
     const data = await response.json();
 

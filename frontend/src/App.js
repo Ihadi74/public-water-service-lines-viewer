@@ -117,7 +117,7 @@ function App() {
             pipes={pipes}
             leakMarker={leakMarker}
             setLeakMarker={setLeakMarker}
-            setMapCenter={setMapCenter}
+            //setMapCenter={setMapCenter}
             address={address}
           />
         </div>
