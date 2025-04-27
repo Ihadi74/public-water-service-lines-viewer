@@ -1,11 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import ReactDOMServer from 'react-dom/server';
-import Pressure from './Pressure';
-import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
-import LeakReportForm from './LeakReportForm';
-import 'leaflet/dist/leaflet.css';
+import FormatColorResetIcon from '@mui/icons-material/FormatColorReset'; // Import Material UI icon
+import ReactDOMServer from 'react-dom/server'; // Import ReactDOMServer for rendering React components as HTML strings
+import LeakReportForm from './LeakReportForm'; // Import the LeakReportForm component
+import 'leaflet/dist/leaflet.css'
+import Pressure from './Pressure';  
+
+
+
+// Helper functions for pipes and water breaks
+function getAgeColor(installedDate) {
+  if (!installedDate) return 'gray';
+  const currentYear = new Date().getFullYear();
+  const yearInstalled = new Date(installedDate).getFullYear();
+  const age = currentYear - yearInstalled;
+  if (age <= 10) return 'green';
+  if (age <= 25) return 'orange';
+  if (age <= 50) return 'red';
+  return 'gray';
+}
+// Legend dot style
+const legendDotStyle = {
+  display: "inline-block",
+  width: "16px",
+  height: "16px",
+  borderRadius: "50%",
+  marginRight: "10px",
+};
+
+const legendStyle = {
+  position: "absolute",
+  bottom: "10px",
+  right: "10px",
+  backgroundColor: "white",
+  padding: "10px",
+  borderRadius: "5px",
+  fontSize: "14px",
+  boxShadow: "0 0 5px rgba(0,0,0,0.3)",
+  zIndex: 1000,
+};
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -85,13 +119,22 @@ const CenterOnLeak = ({ leakMarker }) => {
 
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
+
   useEffect(() => {
-    const handleZoom = () => setShowMarkers(map.getZoom() >= 15);
-    map.on('zoomend', handleZoom);
-    return () => map.off('zoomend', handleZoom);
+    const onZoom = () => {
+      const zoomLevel = map.getZoom();
+      setShowMarkers(zoomLevel >= 15);
+    };
+    map.on('zoomend', onZoom);
+    return () => {
+      map.off('zoomend', onZoom);
+    };
   }, [map, setShowMarkers]);
+
   return null;
 };
+
+
 
 const CombinedCenterMap = ({ pipes, selectedPipe }) => {
   const map = useMap();
