@@ -7,19 +7,6 @@ import LeakReportForm from './LeakReportForm'; // Import the LeakReportForm comp
 import 'leaflet/dist/leaflet.css'
 import Pressure from './Pressure'; 
 
-
-
-// Helper functions for pipes and water breaks
-function getAgeColor(installedDate) {
-  if (!installedDate) return 'gray';
-  const currentYear = new Date().getFullYear();
-  const yearInstalled = new Date(installedDate).getFullYear();
-  const age = currentYear - yearInstalled;
-  if (age <= 10) return 'green';
-  if (age <= 25) return 'orange';
-  if (age <= 50) return 'red';
-  return 'gray';
-}
 // Legend dot style
 const legendDotStyle = {
   display: "inline-block",
