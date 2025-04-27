@@ -19,109 +19,164 @@ function generateRandomColor() {
     return color;
 }
 const Pressure = ({ data }) => {
-    const [cycle, setCycle] = useState(0);
 
-    // Auto-transition from "Troubleshoot" (state 1) back to "Show Pressure Zone" (state 0) after 8 seconds
-    useEffect(() => {
-        if (cycle === 1) {
-            const timer = setTimeout(() => {
-                setCycle(0); // Reset to state 0 after timeout
-            }, 8000);
-            return () => clearTimeout(timer);
-        }
 
-    }, [cycle]);
-
-    if (!data || data.length === 0) return null;
-
-    // Only render polygons when in the "Show" state (cycle 1).
-    const polygonsVisible = cycle === 1;
-    const handleToggle = () => {
-        if (cycle === 0) {
-            // State 0: "Not Show" – clicking here will change to "Show Pressure Zone"
-            setCycle(1);
-        } else if (cycle === 1) {
-            // State 1: "Troubleshoot" – clicking opens troubleshooting link and cycles back to "Not Show"
-            window.open('https://www.calgary.ca/water/drinking-water/water-pressure.html',
-                '_blank'
-            );
-            setCycle(0);
-        }
-
-    };
+const [cycle, setCycle] = useState(0);
 
 
 
 
-    // Set the button's label based on the current cycle.
+// Auto-transition from state 1 back to state 0 after 8 seconds.
 
 
-    const buttonLabel = cycle === 0 ? 'Show Pressure Zone' : 'Troubleshoot';
+useEffect(() => {
+
+
+if (cycle === 1) {
+  const timer = setTimeout(() => {
+    setCycle(0);
+  }, 18000);
+  return () => clearTimeout(timer);
+}
+
+}, [cycle]);
 
 
 
 
-    return (
+if (!data || data.length === 0) return null;
 
 
-        <>
-            {/* Render Pressure Polygons when visible */}
-            {polygonsVisible &&
-                data.map((item, index) => {
-      const polygons = parseMultiPolygon(item.multipolygon);
-      return polygons.map((polygon, polyIndex) => {
-        const color = generateRandomColor();
-            return (
+
+
+// Polygons are visible only when cycle === 1.
+
+
+const polygonsVisible = cycle === 1;
+
+
+
+
+// Button Handlers
+
+
+const handleShow = () => {
+
+
+setCycle(1);
+
+};
+
+
+
+
+const handleTroubleshoot = () => {
+
+
+window.open(
+  'https://www.calgary.ca/water/drinking-water/water-pressure.html',
+  '_blank'
+);
+setCycle(0);
+
+};
+
+
+
+
+const handleHidePressureZone = () => {
+
+
+setCycle(0);
+
+};
+
+
+
+
+return (
+  <>
+    {/* Render Pressure Polygons when visible */}
+    {polygonsVisible &&
+      data.map((item, index) => {
+        const polygons = parseMultiPolygon(item.multipolygon);
+        return polygons.map((polygon, polyIndex) => {
+          const color = generateRandomColor();
+          return (
             <Polygon
-                key={`${index}-${polyIndex}`}
-                positions={polygon}
-                pathOptions={{ color, fillOpacity: 0.5, weight: 2 }}
+              key={`${index}-${polyIndex}`}
+              positions={polygon}
+              pathOptions={{ color, fillOpacity: 0.5, weight: 2 }}
             >
-                {/* Tooltip displays the polygon's zone on hover.
-                If [item.zone](http://item.zone) is not provided, it falls back to "Unnamed Zone". */}
-                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                    {item.zone || 'Unnamed Zone'}
-                </Tooltip>
+              <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                {item.zone || "Unnamed Zone"}
+              </Tooltip>
             </Polygon>
-            );
-      });
-    })
+          );
+        });
+      })}
+
+    {/* Toggle Button positioned in the Leaflet map container */}
+    <div className="toggle-container">
+      {cycle === 0 && (
+        <button className="toggle-button" onClick={handleShow}>
+          Show Pressure Zone
+        </button>
+      )}
+      {cycle === 1 && (
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button className="toggle-button" onClick={handleTroubleshoot}>
+            Troubleshoot
+          </button>
+          <button className="toggle-button" onClick={handleHidePressureZone}>
+            Hide Pressure Zone
+          </button>
+        </div>
+      )}
+    </div>
+
+    {/* Inline CSS styles for positioning and button styling */}
+    <style>{`
+  .toggle-container {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    
+    background: rgba(255, 255, 255, 0); /* Completely transparent background for the container */
+    border-radius: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   }
 
-            {/* Toggle Button positioned in the Leaflet map container */}
-            <div className="toggle-container">
-                <button className="toggle-button" onClick={handleToggle}>
-                    {buttonLabel}
-                </button>
-            </div>
+  .toggle-button {
+    padding: 6px 12px;
+     font-size: 14px;
+     font-family: revert;
+    background-color: transparent; /* Fully transparent background initially */
+    color:rgb(9, 9, 9);  /* Light blue text color */
+    border: none;  /* No border */
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    outline: none;  /* Remove outline */
+  }
 
-            {/* Inline CSS styles for positioning and button styling */}
-            <style>{`
-    .toggle-container {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      z-index: 1000;
-      color: black;
-      padding: 10px;
-    }
-    .toggle-button {
-      padding: 10px 20px;
-      background-color: transparent;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      color: black;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-      transition: background-color 0.3s ease;
-    }
-    .toggle-button:hover {
-      background-color: #0056b3;
-    }
-  `}</style>
-        </>
-    );
+  .toggle-button:hover {
+    background-color: rgb(12, 123, 241);  /* Light blue background on hover */
+    color:rgb(16, 16, 17);  /* Darker text color on hover */
+  }
+`}</style>
+  </>
+);
+
+
 };
+
+
+
 
 export default Pressure;
