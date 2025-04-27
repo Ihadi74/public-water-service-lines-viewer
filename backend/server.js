@@ -2,30 +2,33 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
-const leakReportRoute = require('./routes/leakReport'); //
+
+const leakReportRoute = require('./routes/leakReport');
 const pipeRoutes = require("./routes/pipes");
+const latestTweetAllRoute = require('./routes/latestTweetAll'); // new route for latest tweet
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-// Middleware
+
+// Middleware setup
 app.use(
   cors({
-    origin: "http://localhost:3000", // Allow only requests from localhost:3000
+    origin: "http://localhost:3000",
   })
 );
 app.use(express.json());
 
+// Use route files
 app.use("/api/leak-report", leakReportRoute);
-
-
 app.use("/api/pipes", pipeRoutes);
+app.use("/api/latest-tweet-all", latestTweetAllRoute);
 
 // Sample route
 app.get("/", (req, res) => {
   res.send("Water Service Lines API is running!");
 });
 
-// Start server
+// Start server after connecting to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
