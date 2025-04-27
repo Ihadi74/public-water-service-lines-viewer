@@ -1,20 +1,23 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import PipeMap from "./PipeMap";
-import DisplayRecords from "./DisplayRecords";
-import Filters from "./Filters";
-import Header from "./Header";
-import NotificationButton from "./NotificationButton";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import PipeMap from './PipeMap';
+import DisplayRecords from './DisplayRecords';
+import Filters from './Filters';
+import Header from './Header';
+import NotificationButton from './NotificationButton';
 
 function App() {
   const [buildingType, setBuildingType] = useState("");
   const [materialType, setMaterialType] = useState("");
   const [addressSearch, setAddressSearch] = useState("");
-
+  
   const [pipes, setPipes] = useState([]);
   const [address, setAddress] = useState("");
-  const [leakMarker, setLeakMarker] = useState(null); // Added state for leakMarker
-
+  const [leakMarker, setLeakMarker] = useState(null); // state for leakMarker
+  
+  // Add state for selectedPipe
+  const [selectedPipe, setSelectedPipe] = useState(null);
+  
   const handleSearchAddress = () => {
     console.log("Searching for address:", address);
     // Implement search logic if needed
@@ -38,7 +41,6 @@ function App() {
 
     fetchPipes();
 
-    // Cleanup function (if needed)
     return () => {
       console.log("Component unmounted, cleanup here!");
     };
@@ -51,7 +53,6 @@ function App() {
         materialType={materialType}
         addressSearch={addressSearch}
       />
-
       <Filters
         setBuildingType={setBuildingType}
         setMaterialType={setMaterialType}
@@ -60,7 +61,6 @@ function App() {
         setAddress={setAddress}
         address={address}
       />
-
       <div
         style={{
           display: "flex",
@@ -74,17 +74,19 @@ function App() {
         <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
           <PipeMap
             pipes={pipes}
-            leakMarker={leakMarker} // Pass the leakMarker state
-            setLeakMarker={setLeakMarker} // Pass the setLeakMarker function
+            leakMarker={leakMarker} // Pass leakMarker state
+            setLeakMarker={setLeakMarker} // Pass setter
             address={address}
+            selectedPipe={selectedPipe}   // Optionally pass selectedPipe if your map needs it
           />
         </div>
-
         <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
           <DisplayRecords
             buildingType={buildingType}
             materialType={materialType}
             addressSearch={addressSearch}
+            selectedPipe={selectedPipe}       // Pass selected pipe
+            setSelectedPipe={setSelectedPipe} // Pass the setter function
           />
         </div>
         <NotificationButton/>

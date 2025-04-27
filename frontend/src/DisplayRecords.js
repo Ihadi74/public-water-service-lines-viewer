@@ -7,14 +7,15 @@ import "./App.css";
 function formatDate(dateString) {
   const options = { year: "numeric", month: "long", day: "numeric" };
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", options); // Format as "November 10, 2021"
+  return date.toLocaleDateString("en-US", options);
 }
 
 function DisplayRecords({
   buildingType,
   materialType,
   addressSearch,
-  setSelectedPipe,
+  setSelectedPipe, // Provided from parent for updating the selected pipe
+  selectedPipe     // Optionally provided to, for example, highlight the selected row
 }) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,7 +31,6 @@ function DisplayRecords({
           `http://localhost:5001/api/pipes?page=${currentPage}&limit=${limit}&buildingType=${buildingType}&materialType=${materialType}&address=${addressSearch}`
         );
         const data = await response.json();
-        // console.log("API Response:", data);
         setTotalResults(data.total);
         setPipes(data.pipes);
       } catch (error) {
@@ -46,10 +46,11 @@ function DisplayRecords({
   if (loading) {
     return <p>Loading...</p>;
   }
+  if (pipes.length === 0) {
+    return <p>No data available...</p>;
+  }
 
-  return pipes.length === 0 ? (
-    <p>No data available...</p>
-  ) : (
+  return (
     <>
       <div
         style={{
@@ -67,9 +68,7 @@ function DisplayRecords({
             fontSize: "16px",
           }}
         >
-          <thead
-          
-          >
+          <thead>
             <tr>
               <th>Building Type</th>
               <th>Address</th>
@@ -83,11 +82,14 @@ function DisplayRecords({
             {pipes.map((pipe, index) => (
               <tr
                 key={index}
-                style={{ borderBottom: "1px solid #ddd", cursor: "pointer" }}
+                style={{
+                  borderBottom: "1px solid #ddd",
+                  cursor: "pointer",
+                  backgroundColor: selectedPipe === pipe ? "#eef" : "transparent"
+                }}
                 onClick={() => {
-                  if (onRowClick) {
-                    onRowClick(pipe);
-                  }
+                  // On row click, update the selected pipe.
+                  setSelectedPipe(pipe);
                 }}
               >
                 <td>{pipe.BUILDING_TYPE}</td>

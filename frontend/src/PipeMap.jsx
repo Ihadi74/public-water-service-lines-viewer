@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup,  useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import ReactDOMServer from 'react-dom/server';
 import Pressure from './Pressure';
@@ -35,31 +35,37 @@ const getAgeColor = (installedDate) => {
   return age <= 10 ? 'green' : age <= 25 ? 'orange' : age <= 50 ? 'red' : 'gray';
 };
 
-
 const parseMultiLineString = (wkt) => {
   if (!wkt) return [];
-  return wkt.replace("MULTILINESTRING ((", "").replace("))", "").split(", ").map((pair) => {
-    const [lng, lat] = pair.trim().split(" ").map(Number);
-    return [lat, lng];
-  });
+  return wkt
+    .replace("MULTILINESTRING ((", "")
+    .replace("))", "")
+    .split(", ")
+    .map((pair) => {
+      const [lng, lat] = pair.trim().split(" ").map(Number);
+      return [lat, lng];
+    });
 };
 
 const createWaterdropIcon = () =>
   L.divIcon({
     className: 'custom-waterdrop-icon',
     html: ReactDOMServer.renderToString(
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 24,
-        height: 24,
-        borderRadius: '50%',
-        filter: 'invert(31%) sepia(90%) saturate(500%) hue-rotate(190deg) brightness(1.2)',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          filter:
+            'invert(31%) sepia(90%) saturate(500%) hue-rotate(190deg) brightness(1.2)',
+        }}
+      >
         <FormatColorResetIcon style={{ color: 'blue', fontSize: '24px' }} />
       </div>
-    )
+    ),
   });
 
 const parseGeoLocation = (geoString) => {
@@ -105,7 +111,9 @@ const CombinedCenterMap = ({ pipes, selectedPipe }) => {
           return;
         }
       }
-      const allCoords = pipes.flatMap(p => p.line ? parseMultiLineString(p.line) : []);
+      const allCoords = pipes.flatMap(p =>
+        p.line ? parseMultiLineString(p.line) : []
+      );
       if (allCoords.length) {
         map.fitBounds(allCoords, { maxZoom: 17 });
         return;
@@ -143,7 +151,9 @@ const PipeMap = ({ pipes, selectedPipe, leakMarker, address, setLeakMarker }) =>
               break_type: b.break_type,
               break_type_description: breakTypeMapping[b.break_type] || "Unknown",
               status: b.status,
-              coordinates: b.point?.coordinates ? [b.point.coordinates[1], b.point.coordinates[0]] : null,
+              coordinates: b.point?.coordinates
+                ? [b.point.coordinates[1], b.point.coordinates[0]]
+                : null,
             }))
           );
           setPolygonData(pressureData);
@@ -160,23 +170,65 @@ const PipeMap = ({ pipes, selectedPipe, leakMarker, address, setLeakMarker }) =>
 
   const activeWaterBreaks = waterBreaks.filter(b => b.status === "ACTIVE");
 
+  // Calculate the position for the selected pipe (if provided)
+  let selectedPipePosition = null;
+  if (selectedPipe) {
+    if (selectedPipe.GEO_LOCATION) {
+      selectedPipePosition = parseGeoLocation(selectedPipe.GEO_LOCATION);
+    } else if (selectedPipe.line) {
+      const coords = parseMultiLineString(selectedPipe.line);
+      if (coords.length) selectedPipePosition = coords[0];
+    }
+  }
+
   return (
-    <MapContainer center={[51.0443, -114.0631]} zoom={10.5} maxZoom={20} minZoom={3} scrollWheelZoom={true} style={{ height: '600px', width: '100%' }}>
+    <MapContainer
+      center={[51.0443, -114.0631]}
+      zoom={10.5}
+      maxZoom={20}
+      minZoom={3}
+      scrollWheelZoom={true}
+      style={{ height: '600px', width: '100%' }}
+    >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      {/* Center the map based on the selected pipe */}
       <CombinedCenterMap pipes={pipes} selectedPipe={selectedPipe} />
       <ZoomListener setShowMarkers={setShowMarkers} />
-      {showMarkers && activeWaterBreaks.map((b, idx) =>
-        b.coordinates && (
-          <Marker key={idx} position={b.coordinates} icon={createWaterdropIcon()}>
-            <Popup>
-              <div>
-                <strong>Break Date:</strong> {b.break_date?.split('T')[0]}<br />
-                <strong>Break Type:</strong> {b.break_type} ({b.break_type_description})
-              </div>
-            </Popup>
-          </Marker>
-        )
+
+      {/* Render a marker for the selected pipe with a Popup containing its details */}
+      {selectedPipe && selectedPipePosition && (
+        <Marker position={selectedPipePosition}>
+          <Popup>
+            <div>
+              <h3>Pipe Details</h3>
+              <p><strong>Building Type:</strong> {selectedPipe.BUILDING_TYPE}</p>
+              <p><strong>Address:</strong> {selectedPipe.WATER_SERVICE_ADDRESS}</p>
+              <p><strong>Material:</strong> {selectedPipe.MATERIAL_TYPE}</p>
+              <p><strong>Diameter (mm):</strong> {selectedPipe["PIPE_DIAMETER (mm)"]}</p>
+              <p><strong>Installed Date:</strong> {selectedPipe.INSTALLED_DATE}</p>
+              <p><strong>Geo Location:</strong> {selectedPipe.GEO_LOCATION}</p>
+            </div>
+          </Popup>
+        </Marker>
       )}
+
+      {/* Render active water break markers if zoom is sufficient */}
+      {showMarkers &&
+        activeWaterBreaks.map((b, idx) =>
+          b.coordinates && (
+            <Marker key={idx} position={b.coordinates} icon={createWaterdropIcon()}>
+              <Popup>
+                <div>
+                  <strong>Break Date:</strong>{' '}
+                  {b.break_date?.split('T')[0]}<br />
+                  <strong>Break Type:</strong> {b.break_type} ({b.break_type_description})
+                </div>
+              </Popup>
+            </Marker>
+          )
+        )}
+      
+      {/* Render a leak marker if one is set */}
       {leakMarker && (
         <Marker position={[leakMarker.lat, leakMarker.lng]}>
           <Popup>
@@ -184,6 +236,7 @@ const PipeMap = ({ pipes, selectedPipe, leakMarker, address, setLeakMarker }) =>
           </Popup>
         </Marker>
       )}
+      
       <CenterOnLeak leakMarker={leakMarker} />
       <Pressure data={polygonData} />
     </MapContainer>
