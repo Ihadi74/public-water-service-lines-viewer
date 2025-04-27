@@ -9,6 +9,7 @@ import Pressure from './Pressure';
 
 
 
+
 const getAgeColor = (installedDate) => {
   if (!installedDate) return 'gray';
   const currentYear = new Date().getFullYear();

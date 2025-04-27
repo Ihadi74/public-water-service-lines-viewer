@@ -29,11 +29,12 @@ function Filters({
     minWidth: "200px",
   };
 
-  // Ensure both address and addressSearch states are updated
   const handleAddressChange = (e) => {
-    const value = e.target.value;
-    setAddress(value); // Update address state with the input value
-    setAddressSearch(value); // Update addressSearch state for filtering or search
+    const value = e.target.value.trim();
+    setAddress(value);
+    if (value.length > 0) {
+      setAddressSearch(value);
+    }
   };
 
   return (
@@ -74,11 +75,16 @@ function Filters({
         <input
           type="text"
           placeholder="Enter address"
-          value={address} // Bind to address state
-          onChange={handleAddressChange} // Handle change and update both states
+          value={address}
+          onChange={handleAddressChange}
           style={inputStyle}
         />
       </label>
+
+      {/* Search Button */}
+      <button onClick={handleSearchAddress} style={{ padding: "6px 12px" }}>
+        Search
+      </button>
     </div>
   );
 }

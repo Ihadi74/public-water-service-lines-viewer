@@ -1,3 +1,4 @@
+// DisplayRecords.js
 import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 import "./App.css";
@@ -6,14 +7,15 @@ import "./App.css";
 function formatDate(dateString) {
   const options = { year: "numeric", month: "long", day: "numeric" };
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", options); // Format as "November 10, 2021"
+  return date.toLocaleDateString("en-US", options);
 }
 
 function DisplayRecords({
   buildingType,
   materialType,
   addressSearch,
-  setSelectedPipe,
+  setSelectedPipe, // Provided from parent for updating the selected pipe
+  selectedPipe     // Optionally provided to, for example, highlight the selected row
 }) {
   const [pipes, setPipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,10 +46,11 @@ function DisplayRecords({
   if (loading) {
     return <p>Loading...</p>;
   }
+  if (pipes.length === 0) {
+    return <p>No data available...</p>;
+  }
 
-  return pipes.length === 0 ? (
-    <p>No data available...</p>
-  ) : (
+  return (
     <>
       <div
         style={{
@@ -65,32 +68,36 @@ function DisplayRecords({
             fontSize: "16px",
           }}
         >
-          <thead
-          
-          >
+          <thead>
             <tr>
               <th>Building Type</th>
               <th>Address</th>
               <th>Material</th>
               <th>Diameter (mm)</th>
-              <th style={{ whiteSpace: "nowrap", width: "200px" }}>
-                Installed Date
-              </th>
+              <th>Installed Date</th>
+              <th>Geo Location</th>
             </tr>
           </thead>
           <tbody>
             {pipes.map((pipe, index) => (
               <tr
                 key={index}
-                style={{ borderBottom: "1px solid #ddd", cursor: "pointer" }}
+                style={{
+                  borderBottom: "1px solid #ddd",
+                  cursor: "pointer",
+                  backgroundColor: selectedPipe === pipe ? "#eef" : "transparent"
+                }}
+                onClick={() => {
+                  // On row click, update the selected pipe.
+                  setSelectedPipe(pipe);
+                }}
               >
-                <td style={{ padding: "8px" }}>{pipe.BUILDING_TYPE}</td>
-                <td style={{ padding: "8px" }}>{pipe.WATER_SERVICE_ADDRESS}</td>
-                <td style={{ padding: "8px" }}>{pipe.MATERIAL_TYPE}</td>
-                <td style={{ padding: "8px" }}>{pipe["PIPE_DIAMETER (mm)"]}</td>
-                <td style={{ padding: "8px", whiteSpace: "nowrap" }}>
-                  {formatDate(pipe.INSTALLED_DATE)}
-                </td>
+                <td>{pipe.BUILDING_TYPE}</td>
+                <td>{pipe.WATER_SERVICE_ADDRESS}</td>
+                <td>{pipe.MATERIAL_TYPE}</td>
+                <td>{pipe["PIPE_DIAMETER (mm)"]}</td>
+                <td>{pipe.INSTALLED_DATE}</td>
+                <td>{pipe.GEO_LOCATION}</td>
               </tr>
             ))}
           </tbody>

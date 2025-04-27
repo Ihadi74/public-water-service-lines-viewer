@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "eslint-plugin-jsx-a11y": "^6.10.2"
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "nodemailer": "^6.10.1"
   }
 }
