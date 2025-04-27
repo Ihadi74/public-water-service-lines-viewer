@@ -7,6 +7,16 @@ import LeakReportForm from './LeakReportForm'; // Import the LeakReportForm comp
 import 'leaflet/dist/leaflet.css'
 import Pressure from './Pressure'; 
 
+
+
+const getAgeColor = (installedDate) => {
+  if (!installedDate) return 'gray';
+  const currentYear = new Date().getFullYear();
+  const installationYear = new Date(installedDate).getFullYear();
+  const age = currentYear - installationYear;
+  return age <= 10 ? 'green' : age <= 25 ? 'orange' : age <= 50 ? 'red' : 'gray';
+};
+
 // Legend dot style
 const legendDotStyle = {
   display: "inline-block",
