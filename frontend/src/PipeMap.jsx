@@ -4,8 +4,8 @@ import L from 'leaflet';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
 import ReactDOMServer from 'react-dom/server';
 import LeakReportForm from './LeakReportForm';
-import 'leaflet/dist/leaflet.css';
 import Pressure from './Pressure';
+import 'leaflet/dist/leaflet.css';
 
 // Mapping for break type letters to their descriptions
 const breakTypeDescriptions = {
@@ -25,6 +25,15 @@ const getAgeColor = (installedDate) => {
   const installationYear = new Date(installedDate).getFullYear();
   const age = currentYear - installationYear;
   return age <= 10 ? 'green' : age <= 25 ? 'orange' : age <= 50 ? 'red' : 'gray';
+};
+
+// Mapping for pipe material colors
+const materialColors = {
+  Copper: "green",
+  Lead: "red",
+  "Cast Iron": "orange",
+  "Cross-linked Polyethylene (PEX)": "blue",
+  Unknown: "gray",
 };
 
 const legendDotStyle = {
@@ -54,14 +63,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: require("leaflet/dist/images/marker-icon.png"),
   shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
-
-const materialColors = {
-  Copper: "green",
-  Lead: "red",
-  "Cast Iron": "orange",
-  "Cross-linked Polyethylene (PEX)": "blue",
-  Unknown: "gray",
-};
 
 function parseMultiLineString(wkt) {
   const cleaned = wkt.replace('MULTILINESTRING ((', '').replace('))', '');
@@ -180,7 +181,7 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
   const [showMarkers, setShowMarkers] = useState(false);
   const [polygonData, setPolygonData] = useState([]);
 
-  // Fetch water break and pressure data
+  // Fetch water breaks and pressure data
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
@@ -223,10 +224,10 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
     };
   }, []);
 
-  // Define activeWaterBreaks here so it is available in the render
+  // Define active water breaks for rendering markers
   const activeWaterBreaks = waterBreaks.filter(b => b.status === "ACTIVE");
 
-  // Calculate the position for the selected pipe (if provided)
+  // Calculate the selected pipe's position
   let selectedPipePosition = null;
   if (selectedPipe) {
     if (selectedPipe.GEO_LOCATION) {
@@ -259,16 +260,20 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
 
         <ZoomListener setShowMarkers={setShowMarkers} />
 
-        {/* Render each pipe as a Polyline with an onClick handler */}
+        {/* Render each pipe as a Polyline */}
         {pipes.map((pipe, index) => {
           if (!pipe.line) return null;
           const positions = parseMultiLineString(pipe.line);
-          const color = getAgeColor(pipe.INSTALLED_DATE);
+          // Use materialColors if material type exists; otherwise, fall back on age color
+          const materialColor =
+            pipe.MATERIAL_TYPE && materialColors[pipe.MATERIAL_TYPE]
+              ? materialColors[pipe.MATERIAL_TYPE]
+              : getAgeColor(pipe.INSTALLED_DATE);
           return (
             <Polyline
               key={index}
               positions={positions}
-              pathOptions={{ color, weight: 6 }}
+              pathOptions={{ color: materialColor, weight: 6 }}
               eventHandlers={{
                 click: (e) => {
                   setSelectedPipe(pipe);
@@ -298,22 +303,36 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
               <Tooltip sticky>
                 <div>
                   <strong>{pipe.BUILDING_TYPE}</strong>
-                  <br />Diameter: {pipe['PIPE_DIAMETER (mm)']}mm
-                  <br />Installed: {pipe.INSTALLED_DATE}
+                  <br />
+                  Diameter: {pipe['PIPE_DIAMETER (mm)']}mm
+                  <br />
+                  Installed: {pipe.INSTALLED_DATE}
                 </div>
               </Tooltip>
             </Polyline>
           );
         })}
 
-        {/* Render active water break markers if the zoom level is sufficient */}
+        {/* Render active water break markers */}
         {showMarkers &&
           activeWaterBreaks.map((breakInfo, index) =>
             breakInfo.coordinates ? (
-              <Marker key={index} position={breakInfo.coordinates} icon={createWaterdropIcon()}>
+              <Marker
+                key={index}
+                position={breakInfo.coordinates}
+                icon={createWaterdropIcon()}
+              >
                 <Popup>
-                  <div style={{ textAlign: 'center', border: 'none', padding: '5px', borderRadius: '20px' }}>
-                    <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      border: 'none',
+                      padding: '5px',
+                      borderRadius: '20px',
+                    }}
+                  >
+                    <strong>Break Date:</strong>{' '}
+                    {breakInfo.break_date.split('T')[0]} <br />
                     <strong>Break Type:</strong>
                     <br />
                     {breakInfo.break_type_desc &&
@@ -324,10 +343,9 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
                 </Popup>
               </Marker>
             ) : null
-          )
-        }
+          )}
 
-        {/* Render a leak marker if one is set */}
+        {/* Render the leak marker if one exists */}
         {leakMarker && (
           <Marker position={[leakMarker.lat, leakMarker.lng]}>
             <Popup>
@@ -353,6 +371,15 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
           </Marker>
         )}
 
+        {/* Use selectedPipePosition to display a marker for the selected pipe */}
+        {selectedPipePosition && (
+          <Marker position={selectedPipePosition}>
+            <Popup>
+              <div>Selected Pipe</div>
+            </Popup>
+          </Marker>
+        )}
+
         <CenterOnLeak leakMarker={leakMarker} />
         <Pressure data={polygonData} />
       </MapContainer>
@@ -361,24 +388,26 @@ const PipeMap = ({ pipes, selectedPipe, setSelectedPipe, leakMarker, address, se
       <div style={legendStyle}>
         <strong>Legend: Pipe Age</strong>
         <div>
-          <span style={{ backgroundColor: "green", ...legendDotStyle }}></span>{" "}
+          <span style={{ backgroundColor: "green", ...legendDotStyle }}></span>{' '}
           0–10 years
         </div>
         <div>
-          <span style={{ backgroundColor: "orange", ...legendDotStyle }}></span>{" "}
+          <span style={{ backgroundColor: "orange", ...legendDotStyle }}></span>{' '}
           11–25 years
         </div>
         <div>
-          <span style={{ backgroundColor: "red", ...legendDotStyle }}></span>{" "}
+          <span style={{ backgroundColor: "red", ...legendDotStyle }}></span>{' '}
           26–50 years
         </div>
         <div>
-          <span style={{ backgroundColor: "gray", ...legendDotStyle }}></span>{" "}
+          <span style={{ backgroundColor: "gray", ...legendDotStyle }}></span>{' '}
           51+ years / Unknown
         </div>
         <div style={{ marginTop: '10px' }}>
           <span>
-            <FormatColorResetIcon style={{ color: 'blue', fontSize: '18px', marginRight: "8px" }} />
+            <FormatColorResetIcon
+              style={{ color: 'blue', fontSize: '18px', marginRight: '8px' }}
+            />
           </span>
           Water Main Break
         </div>
