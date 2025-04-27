@@ -5,6 +5,7 @@ import DisplayRecords from "./DisplayRecords";
 import Filters from "./Filters";
 //import Pagination from "./Pagination";
 import Header from "./Header";
+import NotificationButton from "./NotificationButton";
 
 
 function App() {
@@ -134,6 +135,7 @@ function App() {
             addressSearch={addressSearch}
           />
         </div>
+        <NotificationButton/>
       </div>
     </>
   );
