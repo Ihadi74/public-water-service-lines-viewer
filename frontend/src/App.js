@@ -108,6 +108,7 @@ function App() {
             setLeakMarker={setLeakMarker}
             address={address}
             selectedPipe={selectedPipe}
+            setSelectedPipe={setSelectedPipe}
           />
         </div>
         <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
