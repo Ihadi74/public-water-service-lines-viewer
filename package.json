@@ -2,5 +2,8 @@
   "dependencies": {
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "nodemailer": "^6.10.1"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
