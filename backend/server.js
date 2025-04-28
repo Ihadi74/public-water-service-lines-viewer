@@ -1,36 +1,25 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-require("dotenv").config();
-
-const leakReportRoute = require('./routes/leakReport');
-const pipeRoutes = require("./routes/pipes");
-const latestTweetAllRoute = require('./routes/latestTweetAll'); // new route for latest tweet
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const cheerio = require('cheerio');
+require('dotenv').config();
+const pipeRoutes = require('./routes/pipes');
+const waterOutageRoute = require('./routes/waterOutage');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware setup
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-  })
-);
+app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.json());
 
-// Use route files
-app.use("/api/leak-report", leakReportRoute);
-app.use("/api/pipes", pipeRoutes);
-app.use("/api/latest-tweet-all", latestTweetAllRoute);
-
-// Sample route
+// Mount the water outage route
+app.use('/api/wateroutage', waterOutageRoute);
+app.use('/api/pipes', pipeRoutes);
 app.get("/", (req, res) => {
   res.send("Water Service Lines API is running!");
 });
 
-// Start server after connecting to MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
     app.listen(PORT, () => {

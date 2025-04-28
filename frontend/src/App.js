@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Header from './Header';
+import Filters from './Filters';
 import PipeMap from './PipeMap';
 import DisplayRecords from './DisplayRecords';
-import Filters from './Filters';
-import Header from './Header';
 import NotificationButton from './NotificationButton';
+import WaterOutageAlert from './WaterOutageAlert';
 
 function App() {
-  // Existing state for pipes and filters
+  // State variables for filters and data management
   const [buildingType, setBuildingType] = useState("");
   const [materialType, setMaterialType] = useState("");
   const [addressSearch, setAddressSearch] = useState("");
@@ -16,43 +17,12 @@ function App() {
   const [leakMarker, setLeakMarker] = useState(null);
   const [selectedPipe, setSelectedPipe] = useState(null);
 
-  // New state for tweet scraping (latest across 3 accounts)
-  const [latestTweet, setLatestTweet] = useState(null);
-  const [tweetLoading, setTweetLoading] = useState(false);
-
-  // Existing search address handler
+  // Handler for triggering an address search
   const handleSearchAddress = () => {
     console.log("Searching for address:", address);
   };
 
-  // Function to fetch the latest tweet from all three accounts
-  const fetchLatestTweetAll = async () => {
-    setTweetLoading(true);
-    try {
-      const response = await axios.get("http://localhost:5001/api/latest-tweet-all");
-      setLatestTweet(response.data.tweet);
-    } catch (error) {
-      console.error("Error fetching latest tweet:", error);
-      setLatestTweet({ text: "Error fetching tweet", account: "", timestamp: "" });
-    } finally {
-      setTweetLoading(false);
-    }
-  };
-
-  // Automatically fetch the latest tweet every 60 seconds.
-  useEffect(() => {
-    // Immediately fetch on mount.
-    fetchLatestTweetAll();
-
-    // Set up an interval to fetch the tweet every 60 seconds (60000 ms)
-    const intervalId = setInterval(() => {
-      fetchLatestTweetAll();
-    }, 60000);
-
-    // Cleanup the interval on component unmount.
-    return () => clearInterval(intervalId);
-  }, []);
-
+  // Effect to fetch pipes whenever filters change
   useEffect(() => {
     const fetchPipes = async () => {
       try {
@@ -71,13 +41,15 @@ function App() {
 
     fetchPipes();
 
+    // Cleanup: log component unmounting if necessary
     return () => {
-      console.log("Component unmounted, cleanup here!");
+      console.log("Cleaning up pipes fetching...");
     };
   }, [buildingType, materialType, addressSearch]);
 
   return (
-    <>
+    <div>
+      {/* Header and Filters */}
       <Header
         buildingType={buildingType}
         materialType={materialType}
@@ -91,6 +63,8 @@ function App() {
         setAddress={setAddress}
         address={address}
       />
+
+      {/* Main Content Area */}
       <div
         style={{
           display: "flex",
@@ -100,7 +74,7 @@ function App() {
           justifyContent: "space-between",
         }}
       >
-        {/* Map and Table */}
+        {/* Pipe Map */}
         <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
           <PipeMap
             pipes={pipes}
@@ -111,6 +85,8 @@ function App() {
             setSelectedPipe={setSelectedPipe}
           />
         </div>
+
+        {/* Display Records */}
         <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
           <DisplayRecords
             buildingType={buildingType}
@@ -120,10 +96,12 @@ function App() {
             setSelectedPipe={setSelectedPipe}
           />
         </div>
+
+        {/* Notification Button */}
         <NotificationButton />
       </div>
 
-      {/* Inline Tweet Scraper UI for Latest Tweet Across All 3 Accounts */}
+      {/* Water Outage Alert Section */}
       <div
         style={{
           padding: "20px",
@@ -131,27 +109,9 @@ function App() {
           marginTop: "20px",
         }}
       >
-        <h2>Latest Tweet (from all 3 accounts)</h2>
-        {tweetLoading ? (
-          <p>Fetching latest tweet...</p>
-        ) : (
-          latestTweet && (
-            <div
-              style={{
-                marginTop: "10px",
-                padding: "10px",
-                border: "1px solid #ccc",
-                backgroundColor: "#f9f9f9",
-              }}
-            >
-              <strong>Account:</strong> {latestTweet.account} <br />
-              <strong>Tweet:</strong> {latestTweet.text} <br />
-              <strong>Timestamp:</strong> {latestTweet.timestamp}
-            </div>
-          )
-        )}
+        <WaterOutageAlert />
       </div>
-    </>
+    </div>
   );
 }
 
