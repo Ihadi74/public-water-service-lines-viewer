@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     alertSection.forEach(element => {
       alertText += $(element).text().trim() + ' ';
     });
-    res.json({ content: alertText.trim() });
+    res.json({ content: alertText.trim('whitehorn') });
   } catch (error) {
     console.error('Error fetching water outage data:', error);
     res.status(500).json({ error: 'Failed to fetch water outage information' });
