@@ -1,153 +1,133 @@
-import React, { useState, useEffect, useCallback } from "react";
+// In WaterOutageAlert.jsx
+
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
-function WaterOutageAlert({ centerMapCallback }) {
+function WaterBreakAlert({ centerMapCallback }) {
   const [alertContent, setAlertContent] = useState("");
+  const [outages, setOutages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [communities, setCommunities] = useState([]);
 
-  // Fetch outage alert data from your backend endpoint
-  const fetchAlert = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:5001/api/water-outage");
-      setAlertContent(response.data.content);
+      setError(null); // Reset error on new fetch
+      const response = await axios.get("http://localhost:5001/api/wateroutage");
+      const data = response.data;
+
+      // Now expects { content: ..., outages: [...] } which matches the updated backend
+      setAlertContent(data.content || ""); // Use empty string if content is null/undefined
+      setOutages(Array.isArray(data.outages) ? data.outages : []);
+      setLoading(false);
     } catch (err) {
+      console.error("Frontend fetch error:", err); // Log the actual error
       setError(err);
-    } finally {
+      // Set default state on error
+      setAlertContent("Failed to load alert data.");
+      setOutages([]);
       setLoading(false);
     }
   }, []);
 
-  // Fetch community data from Calgary's open data API
-  const fetchCommunities = useCallback(async () => {
-    try {
-      const response = await axios.get("https://www.calgary.ca/water/customer-service/water-outages.html");
-      console.log(response.data);
-      
-      setCommunities(response.data);
-    } catch (err) {
-      console.error("Error fetching community data:", err);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchAlert();
-    const alertInterval = setInterval(fetchAlert, 5 * 60 * 1000); // refresh every 5 minutes
-    return () => clearInterval(alertInterval);
-  }, [fetchAlert]);
+    fetchData();
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
-  useEffect(() => {
-    fetchCommunities();
-  }, [fetchCommunities]);
-
-  // Filter communities using case-insensitive match on name
-  const matchedCommunities = alertContent
-    ? communities.filter((comm) =>
-        comm.name && alertContent.toLowerCase().includes(comm.name.toLowerCase())
-      )
-    : [];
-
-  // Use regex to extract potential Calgary addresses from the alert text.
-  // This example looks for a number, followed by street words and "Calgary" (optionally with province AB).
-  const addressRegex = /(\d+\s+[A-Za-z0-9\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr)[^,]*,\s*Calgary(?:,?\s*AB)?)/gi;
-  const extractedAddresses = alertContent
-    ? Array.from(new Set(alertContent.match(addressRegex) || []))
-    : [];
-
-  // Handle community button click—use provided coordinates (or fallback fields) to center the map
-  const handleCommunityClick = (community) => {
+  // --- handleOutageClick function remains the same, BUT ensure it uses the right field for name ---
+  // Optional: handle a click to center your map on a given outage location.
+  // Adjust this function based on how coordinates are returned.
+  const handleOutageClick = (outage) => {
     let lat, lng;
-    if (community.point && community.point.coordinates) {
-      // Open data typically provides point as [lng, lat]
-      lng = parseFloat(community.point.coordinates[0]);
-      lat = parseFloat(community.point.coordinates[1]);
-    } else if (community.latitude && community.longitude) {
-      lat = parseFloat(community.latitude);
-      lng = parseFloat(community.longitude);
+    if (outage.lat && outage.lng) {
+      lat = parseFloat(outage.lat);
+      lng = parseFloat(outage.lng);
+    } else if (outage.coordinates) {
+      lng = parseFloat(outage.coordinates[0]);
+      lat = parseFloat(outage.coordinates[1]);
     }
+    // *** Use 'community' if that's the correct field name now ***
+    const communityName = outage.community || outage.communityInfo || "Unknown Location"; // Fallback
     if (centerMapCallback && lat && lng) {
-      centerMapCallback({ name: community.name, lat, lng });
+      centerMapCallback({ name: communityName, lat, lng });
     } else {
-      console.log("Invalid coordinates or missing callback for community:", community.name);
+      console.log("Map center callback not provided or missing coordinates for", communityName);
     }
   };
+  // --- End of handleOutageClick changes ---
 
-  // Geolocate an extracted address using the Nominatim API
-  const handleAddressClick = async (address) => {
-    try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
-      );
-      if (response.data && response.data.length > 0) {
-        const lat = parseFloat(response.data[0].lat);
-        const lng = parseFloat(response.data[0].lon);
-        if (centerMapCallback) {
-          centerMapCallback({ name: address, lat, lng });
-        }
-      } else {
-        console.error("No location found for address:", address);
-      }
-    } catch (err) {
-      console.error("Error geolocating address:", err);
-    }
-  };
 
   if (loading) {
-    return <div>Loading water outage information...</div>;
+    return <div>Loading water outage alert...</div>;
   }
 
-  if (error) {
-    return <div>Error fetching water outage information: {error.message}</div>;
+  // Display fetch error if occurred
+  if (error && !outages.length) { // Show specific error message if loading failed entirely
+     return <div>Error fetching water outage alert: {error.message}</div>;
   }
+
 
   return (
     <div>
-      <h2>Water Outage Alert</h2>
+      <h2>Water Break Alert!</h2>
+      {/* Display alertContent fetched from API */}
       <div>{alertContent || "No alert data available."}</div>
 
-      {/* Render buttons for matched communities */}
-      {matchedCommunities.length > 0 && (
-        <div style={{ marginTop: "10px" }}>
-          <h3>Center Map on Community:</h3>
-          {matchedCommunities.map((community) => (
-            <button
-              key={community.comm_code || community.name}
-              onClick={() => handleCommunityClick(community)}
-              style={{
-                margin: "0 5px",
-                padding: "5px 10px",
-                cursor: "pointer"
-              }}
-            >
-              {community.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Render buttons for extracted potential addresses */}
-      {extractedAddresses.length > 0 && (
-        <div style={{ marginTop: "10px" }}>
-          <h3>Geolocate Address:</h3>
-          {extractedAddresses.map((address, index) => (
-            <button
-              key={index}
-              onClick={() => handleAddressClick(address)}
-              style={{
-                margin: "0 5px",
-                padding: "5px 10px",
-                cursor: "pointer"
-              }}
-            >
-              {address}
-            </button>
-          ))}
-        </div>
+      <h3>Outage Details</h3>
+      {outages.length > 0 ? (
+        outages.map((outage) => ( // Use outage._id for key if available and unique
+          <div
+            key={outage._id || outage.community + outage.updatedTime} // Use a more reliable key
+            style={{
+              border: "1px solid #ccc",
+              padding: "10px",
+              margin: "10px 0",
+            }}
+          >
+            {/* *** Use updated field names *** */}
+            <h4>{outage.community}</h4> {/* Changed from communityInfo */}
+             <p>
+              <strong>Updated:</strong> {outage.updatedTime}
+            </p>
+            <p>
+              <strong>Priority:</strong> {outage.priority}
+            </p>
+            <p>
+              <strong>Status:</strong> {outage.currentStatus} {/* Changed from status */}
+            </p>
+            {/* Removed breakDetails as it wasn't in the updated schema */}
+            {outage.repairLocation && (
+              <p>
+                <strong>Repair Location:</strong> {outage.repairLocation}
+              </p>
+            )}
+             {outage.repairCompletion && (
+              <p>
+                <strong>Est. Completion:</strong> {outage.repairCompletion}
+              </p>
+            )}
+            {outage.waterWagonInfo && ( // Changed from waterWagon
+              <p>
+                <strong>Water Wagon:</strong> {outage.waterWagonInfo}
+              </p>
+            )}
+            {/* Check for coordinates logic remains similar */}
+            {(outage.lat && outage.lng) || outage.coordinates ? (
+              <button onClick={() => handleOutageClick(outage)}>
+                 {/* Use updated field name */}
+                Center Map on {outage.community || "Location"}
+              </button>
+            ) : null}
+          </div>
+        ))
+      ) : (
+        // Show specific message if API returned content but no outages
+        <p>{loading ? "Loading..." : "No current outage details found."}</p>
       )}
     </div>
   );
 }
 
-export default WaterOutageAlert;
+export default WaterBreakAlert;
