@@ -318,9 +318,14 @@ const activeWaterBreaks = waterBreaks.filter(b => b.status === "ACTIVE");
                      
                       textAlign: 'center',
                     }}
-                  >
+                    >
                     <strong>Break Date:</strong> {breakInfo.break_date.split('T')[0]} <br />
-                    <strong>Break Type:</strong> {breakInfo.break_type}
+                    <strong>Break Type:</strong> {breakInfo.break_type} <br />
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                      A: Full Circular | B: Split | C: Corrosion | D: Fitting<br />
+                      E: Joint | F: Diagonal Crack | G: Hole | S: Saddle
+                    </div>
+                    <strong>Status:</strong> {breakInfo.status}
                   </div>
                 </Popup>
               </Marker>
