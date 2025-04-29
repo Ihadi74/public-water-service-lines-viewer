@@ -23,7 +23,9 @@ function WaterOutageAlert({ centerMapCallback }) {
   // Fetch community data from Calgary's open data API
   const fetchCommunities = useCallback(async () => {
     try {
-      const response = await axios.get("https://data.calgary.ca/resource/j9ps-fyst.json");
+      const response = await axios.get("https://www.calgary.ca/water/customer-service/water-outages.html");
+      console.log(response.data);
+      
       setCommunities(response.data);
     } catch (err) {
       console.error("Error fetching community data:", err);
