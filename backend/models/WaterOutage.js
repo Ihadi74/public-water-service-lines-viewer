@@ -1,15 +1,13 @@
 const mongoose = require("mongoose");
 
 const WaterOutageSchema = new mongoose.Schema({
-    community: String,        // Changed from communityInfo
-    updatedTime: String,      // Added
-    priority: String,         // Kept
-    currentStatus: String,    // Changed from status, matches scraper
-    repairLocation: String,   // Kept
-    repairCompletion: String, // Added
-    waterWagonInfo: String,   // Changed from waterWagon, matches scraper
-    // breakDetails: String,  // Removed as it wasn't in the scraper output
-    scrapedAt: { type: Date, default: Date.now } // Kept
-  });
+  community: String,         // Matches the scraper output for community
+  updatedTime: String,       // The updated timestamp as a string from the scraper
+  priority: String,          // Maintained from the previous schema
+  currentStatus: String,     // Matches the scraper's currentStatus field
+  repairLocation: String,    // Renamed from Specificrepairlocation to repairLocation
+  repairCompletion: String,  // Added for repair completion info
+  scrapedAt: { type: Date, default: Date.now } // Timestamp for when the data was scraped
+});
 
 module.exports = mongoose.model("WaterOutage", WaterOutageSchema);

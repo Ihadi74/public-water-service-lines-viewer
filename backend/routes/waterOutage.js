@@ -10,14 +10,14 @@ router.get("/", async (req, res) => {
     try {
       // Calculate the date 48 hours ago from now
       const fortyEightHoursAgo = new Date();
-      fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+      fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 24);
   
       // Fetch the filtered outages
       const outageDocs = await WaterOutage.find({ // Renamed to outageDocs for clarity
         scrapedAt: { $gte: fortyEightHoursAgo }
       });
   
-      console.log("Fetched outages from last 48 hours:", outageDocs);
+      console.log("Fetched outages from last 24 hours:", outageDocs);
   
       // *** CHANGE HERE: Respond with an object containing 'content' and 'outages' ***
       res.json({

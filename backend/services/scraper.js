@@ -62,22 +62,13 @@ async function scrapeWaterOutages() {
         repairCompletion = repairCompMatch[1].trim();
       }
       
-      // Optionally, extract water wagon details if present.
-      // This example attempts to capture text starting with "Water wagon:" up to the next "Repair to be completed by:" or end of block.
-      let waterWagonInfo = "";
-      const waterWagonMatch = block.match(/Water wagon:([\s\S]*?)(?:Repair to be completed by:|$)/i);
-      if (waterWagonMatch) {
-        waterWagonInfo = waterWagonMatch[1].trim();
-      }
-      
       return {
         community,
         updatedTime,
-        priority,
+        priority, 
         currentStatus,
         repairLocation,
-        repairCompletion,
-        waterWagonInfo
+        repairCompletion
       };
     });
 
@@ -90,4 +81,3 @@ async function scrapeWaterOutages() {
 }
 
 module.exports = scrapeWaterOutages;
-
