@@ -1,11 +1,13 @@
 // PipeMap.jsx
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'; // Added useRef
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, Tooltip, } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
 import ReactDOMServer from 'react-dom/server';
-import WaterOutageAlert from './WaterOutageAlert'; // Import WaterOutageAlert
+import LeakReportForm from './LeakReportForm';
+import Pressure from './Pressure';
+import { createRoot } from 'react-dom/client';
 
 // --- CONFIGURATION & UTILITY FUNCTIONS ---
 const breakTypeDescriptions = { A: 'Full Circular', B: 'Split', C: 'Corrosion', D: 'Fitting', E: 'Joint', F: 'Diagonal Crack', G: 'Hole', S: 'Saddle' };
@@ -17,201 +19,562 @@ const getAgeColor = (installedDate) => {
   const age = currentYear - installationYear;
   return age <= 10 ? 'green' : age <= 25 ? 'orange' : age <= 50 ? 'red' : 'gray';
 };
-const materialColors = { Copper: 'green', Lead: 'red', 'Cast Iron': 'orange', 'Cross-linked Polyethylene (PEX)': 'blue', Unknown: 'gray' };
-const legendDotStyle = { display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', marginRight: '10px', verticalAlign: 'middle' };
-const legendStyle = { position: 'absolute', bottom: '10px', right: '10px', backgroundColor: 'rgba(255, 255, 255, 0.8)', padding: '10px', borderRadius: '5px', fontSize: '12px', boxShadow: '0 0 5px rgba(0,0,0,0.3)', zIndex: 1000, maxWidth: '200px' };
+
+// Legend styles
+const legendDotStyle = {
+  display: 'inline-block',
+  width: '16px',
+  height: '16px',
+  borderRadius: '50%',
+  marginRight: '10px',
+};
+
+// Removed unused legendStyle object
+
+// Address style for tooltips
+const addressStyle = {
+  width: '200px',
+  wordWrap: 'break-word', 
+  overflowWrap: 'break-word',
+  whiteSpace: 'normal',
+  textAlign: 'left'
+};
+
+// Configure default icons for Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default || require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png').default || require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png').default || require('leaflet/dist/images/marker-shadow.png'),
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
-const parseMultiLineString = (wkt) => {
-  if (!wkt || !wkt.startsWith('MULTILINESTRING')) return [];
-  try {
-    const cleaned = wkt.replace(/^MULTILINESTRING \s*\(\(/, '').replace(/\)\)$/, '');
-    return cleaned.split(/,\s*/).map((pair) => {
-      const coords = pair.split(/\s+/).map(Number);
-      return [coords[1], coords[0]]; // Swap to [lat, lng]
-    }).filter(pos => pos.length === 2 && !isNaN(pos[0]) && !isNaN(pos[1]));
-  } catch (error) { console.error("Error parsing MULTILINESTRING:", wkt, error); return []; }
-};
-// parseGeoLocation removed - no longer needed
-const createWaterdropIcon = () => L.divIcon({ html: ReactDOMServer.renderToString(<FormatColorResetIcon style={{ color: 'blue', fontSize: 30 }} />), className: 'waterdrop-icon', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
-const waterDropIcon = createWaterdropIcon();
-// createPoliceSirenIcon removed
 
+// Parse MULTILINESTRING WKT format
+const parseMultiLineString = (wkt) => {
+  if (!wkt) return [];
+  try {
+    // Handle both formats that might come from different data sources
+    if (wkt.startsWith('MULTILINESTRING')) {
+      const cleaned = wkt.replace(/^MULTILINESTRING\s*\(\(/, '').replace(/\)\)$/, '');
+      return cleaned.split(/,\s*/).map((pair) => {
+        const coords = pair.trim().split(/\s+/).map(Number);
+        return [coords[1], coords[0]]; // Swap to [lat, lng]
+      }).filter(pos => pos.length === 2 && !isNaN(pos[0]) && !isNaN(pos[1]));
+    } else {
+      // Handle simpler format from reference implementation
+      const cleaned = wkt.replace('MULTILINESTRING ((', '').replace('))', '');
+      return cleaned.split(', ').map((pair) => {
+        const [lng, lat] = pair.trim().split(' ').map(Number);
+        return [lat, lng];
+      });
+    }
+  } catch (error) {
+    console.error("Error parsing MULTILINESTRING:", wkt, error);
+    return [];
+  }
+};
+
+// Parse GEO_LOCATION string
+const parseGeoLocation = (geoString) => {
+  if (!geoString) return null;
+  return geoString.split(',').map(Number);
+};
+
+// Create waterdrop icon
+const createWaterdropIcon = () => {
+  return L.divIcon({
+    className: 'custom-waterdrop-icon',
+    html: `
+      <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 24px; 
+        height: 24px; 
+        background: transparent;
+        border-radius: 50%;
+        filter: invert(31%) sepia(90%) saturate(500%) hue-rotate(190deg) brightness(1.2);
+      ">
+        ${ReactDOMServer.renderToString(
+          <FormatColorResetIcon style={{ color: 'blue', fontSize: '24px' }} />
+        )}
+      </div>
+    `,
+  });
+};
+
+const waterDropIcon = createWaterdropIcon();
 
 // --- HELPER COMPONENTS ---
 class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, errorInfo) { console.error("Map rendering error caught:", error, errorInfo); }
-  render() { if (this.state.hasError) { return <div>Map Error: {this.state.error?.message}</div>; } return this.props.children; }
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error("Map Error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong with the map view.</h1>;
+    }
+    return this.props.children;
+  }
 }
 
-// DynamicCenter removed
+// DynamicCenter recenters the map based on an external alert center
+const DynamicCenter = ({ mapCenter }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (mapCenter) {
+      map.setView([mapCenter.lat, mapCenter.lng], 14, { animate: true });
+    }
+  }, [mapCenter, map]);
+  return null;
+};
 
+// CenterOnLeak recenters the map if a leak marker is provided
 const CenterOnLeak = ({ leakMarker }) => {
   const map = useMap();
   useEffect(() => {
-    // Check if leakMarker is an object with lat/lng
-    if (leakMarker && typeof leakMarker.lat === 'number' && typeof leakMarker.lng === 'number') {
-      map.setView([leakMarker.lat, leakMarker.lng], 17, { animate: true, duration: 1 });
+    if (leakMarker) {
+      map.setView([leakMarker.lat, leakMarker.lng], 18);
     }
-    // Note: This component doesn't handle string "lat,lng" format anymore as parseGeoLocation was removed
   }, [leakMarker, map]);
   return null;
 };
 
+// ZoomListener toggles water break marker visibility at zoom >= 15
 const ZoomListener = ({ setShowMarkers }) => {
   const map = useMap();
   useEffect(() => {
-    const handleZoom = () => {
-      const currentZoom = map.getZoom();
-      setShowMarkers(currentZoom >= 15); // Example threshold
+    const onZoom = () => {
+      const zoomLevel = map.getZoom();
+      setShowMarkers(zoomLevel >= 15);
     };
-    map.on('zoomend', handleZoom);
-    handleZoom(); // Initial check
-    return () => { map.off('zoomend', handleZoom); };
+    map.on("zoomend", onZoom);
+    // Set initial visibility
+    onZoom();
+    return () => map.off("zoomend", onZoom);
   }, [map, setShowMarkers]);
   return null;
 };
 
+// CenterMap adjusts the map bounds based on pipes
 const CenterMap = ({ pipes, selectedPipe }) => {
   const map = useMap();
-   useEffect(() => {
-    if (selectedPipe?.positions?.length > 0) {
-      map.fitBounds(selectedPipe.positions, { padding: [50, 50], maxZoom: 18 });
-    } else if (!selectedPipe && pipes?.length > 0) {
-      const allPositions = pipes.flatMap(p => p.positions || []);
-      if (allPositions.length > 0) {
-        try { map.fitBounds(allPositions, { padding: [20, 20] }); } catch (e) { map.setView([51.0447, -114.0719], 11); }
+  useEffect(() => {
+    try {
+      if (selectedPipe?.line) {
+        const coords = parseMultiLineString(selectedPipe.line);
+        if (coords.length) {
+          map.fitBounds(coords, { maxZoom: 17 });
+          return;
+        }
       }
+      
+      if (selectedPipe?.GEO_LOCATION) {
+        const geo = parseGeoLocation(selectedPipe.GEO_LOCATION);
+        if (geo) {
+          map.setView(geo, 17);
+          return;
+        }
+      }
+      
+      if (selectedPipe?.the_geom) {
+        const coords = parseMultiLineString(selectedPipe.the_geom);
+        if (coords.length) {
+          map.fitBounds(coords, { maxZoom: 17 });
+          return;
+        }
+      }
+      
+      const allCoords = pipes.flatMap((p) => {
+        if (p.line) return parseMultiLineString(p.line);
+        if (p.the_geom) return parseMultiLineString(p.the_geom);
+        return [];
+      });
+      
+      if (allCoords.length) {
+        map.fitBounds(allCoords, { maxZoom: 17 });
+        return;
+      }
+      
+      map.setView([51.045, -114.057], 10);
+    } catch (error) {
+      console.error("Error in CenterMap:", error);
     }
-  }, [pipes, selectedPipe, map]);
+  }, [pipes, map, selectedPipe]);
   return null;
 };
 
-// This component makes the map instance available outside the MapContainer
+// Add a MapController to capture the map instance
 const MapController = ({ setMapRef }) => {
   const map = useMap();
   
-  // Effect to set the map ref when the map is ready
   useEffect(() => {
-    if (map) {
+    if (map && setMapRef) {
       setMapRef(map);
-      console.log("Map instance is ready and accessible via ref");
     }
-    return () => setMapRef(null); // Clean up ref on unmount
   }, [map, setMapRef]);
   
   return null;
 };
 
-const Legend = () => (
-   <div style={legendStyle}>
-    <strong>Pipe Material</strong>
-    {Object.entries(materialColors).map(([material, color]) => ( <div key={material}><span style={{ ...legendDotStyle, backgroundColor: color }}></span>{material}</div> ))}
-    <hr style={{ margin: '5px 0' }} />
-    <strong>Pipe Age (Years)</strong>
-    <div><span style={{ ...legendDotStyle, backgroundColor: 'green' }}></span>0-10</div>
-    <div><span style={{ ...legendDotStyle, backgroundColor: 'orange' }}></span>11-25</div>
-    <div><span style={{ ...legendDotStyle, backgroundColor: 'red' }}></span>26-50</div>
-    <div><span style={{ ...legendDotStyle, backgroundColor: 'gray' }}></span>50+ / Unknown</div>
-  </div>
-);
-
+// Create a custom Legend Control for Leaflet
+const MapLegend = () => {
+  const map = useMap();
+  
+  useEffect(() => {
+    // Create a custom control
+    const legendControl = L.control({ position: 'bottomright' });
+    
+    legendControl.onAdd = function () {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.style.backgroundColor = 'white';
+      div.style.padding = '10px';
+      div.style.borderRadius = '5px';
+      div.style.fontSize = '14px';
+      div.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
+      
+      // Create a root for React to render into
+      const root = createRoot(div);
+      
+      // Render the legend content
+      root.render(
+        <div>
+          <strong>Legend: Pipe Age</strong>
+          <div>
+            <span style={{ ...legendDotStyle, backgroundColor: "green" }}></span>{" "}
+            0–10 years
+          </div>
+          <div>
+            <span style={{ ...legendDotStyle, backgroundColor: "orange" }}></span>{" "}
+            11–25 years
+          </div>
+          <div>
+            <span style={{ ...legendDotStyle, backgroundColor: "red" }}></span>{" "}
+            26–50 years
+          </div>
+          <div>
+            <span style={{ ...legendDotStyle, backgroundColor: "gray" }}></span>{" "}
+            51+ years / Unknown
+          </div>
+          <div style={{ marginTop: "10px" }}>
+            <span>
+              <FormatColorResetIcon
+                style={{ color: "blue", fontSize: "18px", marginRight: "8px" }}
+              />
+            </span>
+            Water Main Break
+          </div>
+        </div>
+      );
+      
+      return div;
+    };
+    
+    // Add the control to the map
+    legendControl.addTo(map);
+    
+    // Clean up on unmount
+    return () => {
+      legendControl.remove();
+    };
+  }, [map]);
+  
+  return null;
+};
 
 // --- MAIN PIPEMAP COMPONENT ---
 const PipeMap = ({
-  pipes = [],
+  pipes,
   selectedPipe,
-  setSelectedPipe = () => {},
-  leakMarker, // Expects { lat, lng, type?, date? }
-  setLeakMarker = () => {},
-  // Add a prop to pass the map instance to parent
+  setSelectedPipe,
+  leakMarker,
+  setLeakMarker,
+  mapCenter,
   setMapInstance = () => {},
 }) => {
+  const [waterBreaks, setWaterBreaks] = useState([]);
+  const [polygonData, setPolygonData] = useState([]);
+  const [showMarkers, setShowMarkers] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Use a stable ref instead of state for the map instance
+  // Use container styles directly in component rendering
+  const containerStyle = { position: 'relative' };
+
+  // Reference to map instance
   const mapRef = useRef(null);
-  const [showBreakMarkers, setShowBreakMarkers] = useState(true); // For ZoomListener
-
-  // Callback to set the map ref from the MapController component
+  
+  // Callback to set the map reference
   const setMapReference = useCallback((map) => {
     mapRef.current = map;
-    // Pass map reference to parent component
     setMapInstance(map);
   }, [setMapInstance]);
 
-  const processedPipes = useMemo(() => {
-     return pipes.map(pipe => {
-        const positions = parseMultiLineString(pipe.the_geom);
-        const material = pipe.material || 'Unknown';
-        const ageColor = getAgeColor(pipe.installed_dt);
-        const materialColor = materialColors[material] || materialColors.Unknown;
-        return { id: pipe.objectid || pipe.asset_id || Math.random(), positions, material, ageColor, materialColor, installedDate: pipe.installed_dt, diameter: pipe.diameter };
-     }).filter(pipe => pipe.positions && pipe.positions.length > 0);
-  }, [pipes]);
+  useEffect(() => {
+    // Just set loading to false since we already have pipes from props
+    setLoading(false);
+  }, []);
 
-  const handlePipeClick = useCallback((pipe) => {
-    setSelectedPipe(pipe);
-  }, [setSelectedPipe]);
+  // Fetch additional water break and pressure polygon data
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAdditionalData = async () => {
+      try {
+        const [res1, res2] = await Promise.all([
+          fetch("https://data.calgary.ca/resource/dpcu-jr23.json"),
+          fetch("https://data.calgary.ca/resource/xn3q-y49u.json")
+        ]);
+        const [waterBreaksData, pressureData] = await Promise.all([
+          res1.json(),
+          res2.json()
+        ]);
+        if (isMounted) {
+          setWaterBreaks(
+            waterBreaksData.map((b) => {
+              const breakTypeStr = b.break_type || "";
+              const breakTypeDesc = breakTypeStr.split("").map(
+                (letter) =>
+                  `${letter} - ${breakTypeDescriptions[letter] || "Unknown"}`
+              );
+              return {
+                break_date: b.break_date,
+                break_type: b.break_type,
+                break_type_desc: breakTypeDesc,
+                status: b.status,
+                coordinates: b.point?.coordinates
+                  ? [b.point.coordinates[1], b.point.coordinates[0]]
+                  : null,
+              };
+            })
+          );
+          setPolygonData(pressureData);
+        }
+      } catch (err) {
+        console.error("Failed to fetch water break data:", err);
+      }
+    };
+    fetchAdditionalData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-  const defaultCenter = [51.0447, -114.0719];
-  const defaultZoom = 11;
+  // Render loading indicator conditionally
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-  const wrapperStyle = { position: 'relative', height: '80vh', width: '100%' };
+  // Determine the selected pipe's position for a marker
+  let selectedPipePosition = null;
+  if (selectedPipe) {
+    if (selectedPipe.GEO_LOCATION) {
+      selectedPipePosition = parseGeoLocation(selectedPipe.GEO_LOCATION);
+    } else if (selectedPipe.line) {
+      const coords = parseMultiLineString(selectedPipe.line);
+      if (coords.length) selectedPipePosition = coords[0];
+    } else if (selectedPipe.the_geom) {
+      const coords = parseMultiLineString(selectedPipe.the_geom);
+      if (coords.length) selectedPipePosition = coords[0];
+    }
+  }
 
   return (
-    <div style={{ position: 'relative', height: '80vh', width: '100%' }}>
-      <ErrorBoundary>
-        <MapContainer
-          center={defaultCenter}
-          zoom={defaultZoom}
-          style={{ height: '100%', width: '100%' }} // Take dimensions from parent
-          scrollWheelZoom={true}
-          // No whenCreated - we use our custom MapController component instead
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
+    <div style={containerStyle}>
+      <MapContainer
+        center={[51.045, -114.057]}
+        zoom={10.5}
+        maxZoom={20}
+        minZoom={3}
+        scrollWheelZoom={true}
+        dragging={true}
+        style={{ height: "600px", width: "100%" }}
+      >
+        {/* Add MapController to use setMapReference */}
+        <MapController setMapRef={setMapReference} />
+        
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-          {/* MapController to set up map ref */}
-          <MapController setMapRef={setMapReference} />
+        <ErrorBoundary>
+          <CenterMap pipes={pipes} selectedPipe={selectedPipe} />
+        </ErrorBoundary>
 
-          {/* Pipe Polylines */}
-          {processedPipes.map((pipe) => (
-            <Polyline
-              key={pipe.id}
-              positions={pipe.positions}
-              color={pipe.materialColor !== 'gray' ? pipe.materialColor : (pipe.ageColor || 'gray')}
-              weight={selectedPipe?.id === pipe.id ? 6 : 3}
-              opacity={selectedPipe?.id === pipe.id ? 1 : 0.7}
-              eventHandlers={{ click: () => handlePipeClick(pipe) }}
-            >
-              <Popup>ID: {pipe.id}<br/>Material: {pipe.material}</Popup>
-            </Polyline>
-          ))}
+        <ZoomListener setShowMarkers={setShowMarkers} />
 
-          {/* Markers (Leak only) */}
-          {/* Conditionally render based on zoom */}
-          {showBreakMarkers && leakMarker && typeof leakMarker.lat === 'number' && typeof leakMarker.lng === 'number' && (
-            <Marker position={[leakMarker.lat, leakMarker.lng]} icon={waterDropIcon}>
-              <Popup>Water Leak Reported<br/>Type: {breakTypeDescriptions[leakMarker?.type] || leakMarker?.type || 'N/A'}</Popup>
-            </Marker>
-          )}
-          {/* Police Marker removed */}
+        {/* Recenter the map if an external map center is provided */}
+        <DynamicCenter mapCenter={mapCenter} />
 
-          {/* Map Centering Logic Components */}
-          <CenterMap pipes={processedPipes} selectedPipe={selectedPipe} />
-          <CenterOnLeak leakMarker={leakMarker} />
-          {/* DynamicCenter removed */}
-          <ZoomListener setShowMarkers={setShowBreakMarkers} />
+        {/* Render each pipe as a polyline with a popup and tooltip */}
+        {Array.isArray(pipes) &&
+          pipes.map((pipe, index) => {
+            // Support both line and the_geom properties
+            const geometry = pipe.line || pipe.the_geom;
+            if (!geometry) return null;
+            
+            const positions = parseMultiLineString(geometry);
+            if (!positions || positions.length === 0) return null;
+            
+            // Support different property naming conventions
+            const installedDate = pipe.INSTALLED_DATE || pipe.installed_dt;
+            const pipeColor = getAgeColor(installedDate);
+            
+            return (
+              <Polyline
+                key={index}
+                positions={positions}
+                pathOptions={{ color: pipeColor, weight: 6 }}
+                eventHandlers={{
+                  click: (e) => {
+                    setSelectedPipe(pipe);
+                    const popupContent = ReactDOMServer.renderToString(
+                      <div>
+                        <strong>{pipe.BUILDING_TYPE || pipe.building_type}</strong>
+                        <br />
+                        {pipe.WATER_SERVICE_ADDRESS || pipe.address}
+                        <br />
+                        {pipe.MATERIAL_TYPE || pipe.material}
+                        <br />
+                        {(pipe["PIPE_DIAMETER (mm)"] || pipe.diameter)}mm
+                        <br />
+                        Installed: {installedDate || "Unknown"}
+                      </div>
+                    );
+                    e.target.bindPopup(popupContent).openPopup();
+                  },
+                }}
+              >
+                <Tooltip sticky>
+                  <div style={addressStyle}>
+                    <strong>{pipe.BUILDING_TYPE || pipe.building_type}</strong>
+                    <br />
+                    Diameter: {(pipe["PIPE_DIAMETER (mm)"] || pipe.diameter)}mm
+                    <br />
+                    Installed: {installedDate || "Unknown"}
+                    <br />
+                    Material: {(pipe.MATERIAL_TYPE || pipe.material) || "Unknown"}
+                    {(pipe.ADDRESS || pipe.address) && (
+                      <>
+                        <br />
+                        Address: {pipe.ADDRESS || pipe.address}
+                      </>
+                    )}
+                  </div>
+                </Tooltip>
+              </Polyline>
+            );
+          })}
 
-          <Legend />
+        {/* Render water break markers (only visible at zoom level 15+) */}
+        {showMarkers &&
+          waterBreaks
+            .filter((b) => b.status === "ACTIVE")
+            .map((breakInfo, idx) =>
+              breakInfo.coordinates ? (
+                <Marker
+                  key={idx}
+                  position={breakInfo.coordinates}
+                  icon={waterDropIcon}
+                >
+                  <Popup>
+                    <div style={{
+                      ...addressStyle,
+                      textAlign: "center",
+                      border: "none",
+                      padding: "5px",
+                      borderRadius: "20px",
+                    }}>
+                      <strong>Break Date:</strong>{" "}
+                      {breakInfo.break_date.split("T")[0]} <br />
+                      <strong>Break Type:</strong>
+                      <br />
+                      {breakInfo.break_type_desc &&
+                        breakInfo.break_type_desc.map((desc, i) => (
+                          <div key={i}>{desc}</div>
+                        ))}
+                      {breakInfo.address && (
+                        <>
+                          <strong>Address:</strong><br />
+                          {breakInfo.address}
+                        </>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              ) : null
+            )}
 
-        </MapContainer>
-      </ErrorBoundary>
+        {/* Render leak marker if provided */}
+        {leakMarker && (
+          <Marker position={[leakMarker.lat, leakMarker.lng]}>
+            <Popup>
+              <div style={{ ...addressStyle, textAlign: "center" }}>
+                {leakMarker.break_type && (
+                  <div style={{ marginBottom: "8px" }}>
+                    <strong>Break Type:</strong>
+                    <br />
+                    {leakMarker.break_type.split("").map((letter, i) => (
+                      <div key={i}>
+                        {letter} - {breakTypeDescriptions[letter] || "Unknown"}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {leakMarker.address && (
+                  <div style={{ marginBottom: "8px" }}>
+                    <strong>Address:</strong><br />
+                    {leakMarker.address}
+                  </div>
+                )}
+                <LeakReportForm
+                  address={leakMarker.address}
+                  coordinates={[leakMarker.lat, leakMarker.lng]}
+                  setLeakMarker={setLeakMarker}
+                />
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Render selected pipe marker, if any - FIX HERE: Add LeakReportForm */}
+        {selectedPipePosition && (
+          <Marker position={selectedPipePosition}>
+            <Popup>
+              <div>
+                <strong>Selected Pipe</strong>
+                <br/>
+                {/* Add pipe details */}
+                {selectedPipe && (
+                  <div style={{ marginBottom: "10px" }}>
+                    <strong>Address:</strong> {selectedPipe.WATER_SERVICE_ADDRESS || selectedPipe.address || 'N/A'}<br/>
+                    <strong>Building Type:</strong> {selectedPipe.BUILDING_TYPE || selectedPipe.building_type || 'N/A'}<br/>
+                    <strong>Material:</strong> {selectedPipe.MATERIAL_TYPE || selectedPipe.material || 'N/A'}<br/>
+                    <strong>Diameter:</strong> {selectedPipe["PIPE_DIAMETER (mm)"] || selectedPipe.diameter || 'N/A'}mm<br/>
+                    <strong>Installed:</strong> {selectedPipe.INSTALLED_DATE || selectedPipe.installed_dt || 'Unknown'}
+                  </div>
+                )}
+                {/* Add LeakReportForm */}
+                <LeakReportForm
+                  address={selectedPipe?.WATER_SERVICE_ADDRESS || selectedPipe?.address || `Location: ${selectedPipePosition[0].toFixed(6)}, ${selectedPipePosition[1].toFixed(6)}`}
+                  coordinates={selectedPipePosition}
+                  setLeakMarker={setLeakMarker}
+                />
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        <CenterOnLeak leakMarker={leakMarker} />
+        <Pressure data={polygonData} />
+        <MapLegend />
+      </MapContainer>
+
     </div>
   );
 };

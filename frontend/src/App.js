@@ -19,6 +19,7 @@ function App() {
   
   // Add state for map instance
   const [mapInstance, setMapInstance] = useState(null);
+  const [mapCenter, setMapCenter] = useState(null); // Add state for map center
 
   // Handler for triggering an address search
   const handleSearchAddress = () => {
@@ -65,6 +66,8 @@ function App() {
         handleSearchAddress={handleSearchAddress}
         setAddress={setAddress}
         address={address}
+        setLeakMarker={setLeakMarker}
+        setMapCenter={setMapCenter} // Pass the setMapCenter function
       />
 
       {/* Main Content Area */}
@@ -93,6 +96,7 @@ function App() {
             selectedPipe={selectedPipe}
             setSelectedPipe={setSelectedPipe}
             setMapInstance={setMapInstance} // Pass the setter function
+            mapCenter={mapCenter} // Pass the mapCenter state
           />
         </div>
 
