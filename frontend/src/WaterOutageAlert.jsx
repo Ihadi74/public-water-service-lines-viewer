@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
-function WaterOutageAlert({ map = null, id = "unknown" }) {
+function WaterOutageAlert({ map = null, id = "unknown", setLeakMarker, setMapCenter }) {
   const [alertContent, setAlertContent] = useState("");
   const [outages, setOutages] = useState([]);
   const [communityData, setCommunityData] = useState([]);
@@ -66,25 +66,82 @@ function WaterOutageAlert({ map = null, id = "unknown" }) {
     }
 
     const communityName = outage.community || outage.name || "Unknown Location";
-    let coords = null;
-    coords = getCommunityCoordinates(communityName); // Try community first
-    if (!coords) { // Fallback to outage data
+    
+    // Check for specific repair location from dataset
+    const specificRepairLocation = outage.specificRepairLocation || outage.repairLocation;
+    console.log(`Specific Repair Location: ${specificRepairLocation}`);
+    
+    // Get community coordinates for map centering
+    let communityCoords = getCommunityCoordinates(communityName);
+    
+    // Default to community coordinates initially
+    let markerCoords = communityCoords;
+    
+    // For production app: use geocoding service to get specific repair location coordinates
+    // For now, either use coordinates in the dataset or community coordinates
+    if (specificRepairLocation) {
+      // Check if dataset has coordinates for the specific repair location
+      if (outage.repairLocationCoords) {
+        markerCoords = outage.repairLocationCoords;
+      } else if (communityCoords) {
+        // We have the repair address but no coordinates - in production, geocode this
+        console.log(`Would geocode "${specificRepairLocation}" in production app`);
+        // For now, use community coordinates
+        markerCoords = communityCoords;
+      }
+    }
+    
+    // Fallback to outage data coords if no community coords found
+    if (!markerCoords) {
       let lat, lng;
-      if (outage.latitude && outage.longitude) { lat = parseFloat(outage.latitude); lng = parseFloat(outage.longitude); }
-      else if (outage.lat && outage.lng) { lat = parseFloat(outage.lat); lng = parseFloat(outage.lng); }
-      else if (outage.coordinates?.length === 2) { lng = parseFloat(outage.coordinates[0]); lat = parseFloat(outage.coordinates[1]); }
-      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) { coords = { lat, lng }; }
+      if (outage.latitude && outage.longitude) { 
+        lat = parseFloat(outage.latitude); lng = parseFloat(outage.longitude); 
+      }
+      else if (outage.lat && outage.lng) { 
+        lat = parseFloat(outage.lat); lng = parseFloat(outage.lng); 
+      }
+      else if (outage.coordinates?.length === 2) { 
+        lng = parseFloat(outage.coordinates[0]); lat = parseFloat(outage.coordinates[1]); 
+      }
+      
+      if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+        markerCoords = { lat, lng };
+        if (!communityCoords) communityCoords = markerCoords;
+      }
     }
 
-    if (coords) {
+    if (markerCoords) {
       try {
-        console.log(`[Alert ${id}] Centering map on ${communityName} at [${coords.lat}, ${coords.lng}], zoom 14`);
-        map.setView([coords.lat, coords.lng], 14, { animate: true, duration: 1 });
+        console.log(`[Alert ${id}] Setting marker at specific repair location [${markerCoords.lat}, ${markerCoords.lng}]`);
+        
+        // Set the leak marker with red waterdrop icon for the specific repair location
+        if (setLeakMarker) {
+          setLeakMarker({
+            lat: markerCoords.lat,
+            lng: markerCoords.lng,
+            message: `Water Outage: ${communityName}`,
+            priority: outage.priority || 'N/A',
+            status: outage.currentStatus || 'N/A',
+            specificLocation: specificRepairLocation || 'No specific address available',
+            iconType: 'redWaterDrop' // This tells PipeMap to use the red water drop icon
+          });
+        }
+        
+        // Center map on community (or repair location if that's all we have)
+        const centerCoords = communityCoords || markerCoords;
+        if (setMapCenter) {
+          setMapCenter(centerCoords);
+        }
+        
+        // Original map centering behavior
+        map.setView([centerCoords.lat, centerCoords.lng], 14, { animate: true, duration: 1 });
       } catch (err) {
         console.error(`[Alert ${id}] Error setting map view:`, err);
       }
-    } else { console.error(`[Alert ${id}] Could not determine valid coordinates for outage:`, outage); }
-  }, [getCommunityCoordinates, map, id]);
+    } else { 
+      console.error(`[Alert ${id}] Could not determine valid coordinates for outage:`, outage); 
+    }
+  }, [getCommunityCoordinates, map, id, setLeakMarker, setMapCenter]);
 
   const handleAlertBoxClick = useCallback(() => {
     if (outages.length > 0) {

@@ -39,9 +39,14 @@
 
 body {
   font-family: 'Arial', sans-serif;
-  background-color: #f4f4f9;
+  background-image: url('../public/images.jpg'); /* Fix the path to the image */
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
   margin: 0;
-  padding: 20px;
+  padding: 0;
+  height: 100%;
+  width: 100%;
 }
 
 h1 {

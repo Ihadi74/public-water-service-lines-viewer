@@ -7,6 +7,13 @@ import DisplayRecords from './DisplayRecords';
 import NotificationButton from './NotificationButton';
 import WaterOutageAlert from './WaterOutageAlert'; // Import WaterOutageAlert
 
+// Add this helper function before the useEffect
+const formatDate = (dateString) => {
+  if (!dateString) return 'Unknown';
+  // Split at 'T' and return only the date part
+  return dateString.split('T')[0];
+};
+
 function App() {
   // State variables for filters and data management
   const [buildingType, setBuildingType] = useState("");
@@ -24,6 +31,11 @@ function App() {
   // Handler for triggering an address search
   const handleSearchAddress = () => {
     console.log("Searching for address:", address);
+    setAddressSearch(address.trim());
+    
+    // When address is searched, clear any previously selected pipe
+    // to focus on the new address marker
+    setSelectedPipe(null);
   };
 
   // Effect to fetch pipes whenever filters change
@@ -110,6 +122,7 @@ function App() {
             setSelectedPipe={setSelectedPipe}
             setMapInstance={setMapInstance}
             mapCenter={mapCenter}
+            formatDate={formatDate} // Add this line
           />
         </div>
 
@@ -143,6 +156,8 @@ function App() {
         <WaterOutageAlert 
           map={mapInstance} 
           id="page-alert" 
+          setLeakMarker={setLeakMarker}
+          setMapCenter={setMapCenter}
         />
       )}
     </div>

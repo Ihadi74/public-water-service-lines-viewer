@@ -8,6 +8,8 @@ import ReactDOMServer from 'react-dom/server';
 import LeakReportForm from './LeakReportForm';
 import Pressure from './Pressure';
 import { createRoot } from 'react-dom/client';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import { formatDate } from "./utils/dateUtils";
 
 // --- CONFIGURATION & UTILITY FUNCTIONS ---
 const breakTypeDescriptions = { A: 'Full Circular', B: 'Split', C: 'Corrosion', D: 'Fitting', E: 'Joint', F: 'Diagonal Crack', G: 'Hole', S: 'Saddle' };
@@ -47,6 +49,30 @@ L.Icon.Default.mergeOptions({
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
+
+// Define a red waterdrop icon
+const createRedWaterDropIcon = () => {
+  return L.divIcon({
+    className: 'custom-red-waterdrop-icon',
+    html: `
+      <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 28px; 
+        height: 28px; 
+        background: transparent;
+        border-radius: 50%;
+      ">
+        ${ReactDOMServer.renderToString(
+          <WaterDropTwoToneIcon style={{ color: '#ff0000', fontSize: '28px' }} />
+        )}
+      </div>
+    `,
+  });
+};
+
+const redWaterDropIcon = createRedWaterDropIcon();
 
 // Parse MULTILINESTRING WKT format
 const parseMultiLineString = (wkt) => {
@@ -129,7 +155,7 @@ const DynamicCenter = ({ mapCenter }) => {
   const map = useMap();
   useEffect(() => {
     if (mapCenter) {
-      map.setView([mapCenter.lat, mapCenter.lng], 14, { animate: true });
+      map.setView([mapCenter.lat, mapCenter.lng], 16, { animate: true });
     }
   }, [mapCenter, map]);
   return null;
@@ -152,7 +178,7 @@ const ZoomListener = ({ setShowMarkers }) => {
   useEffect(() => {
     const onZoom = () => {
       const zoomLevel = map.getZoom();
-      setShowMarkers(zoomLevel >= 15);
+      setShowMarkers(zoomLevel >= 14);
     };
     map.on("zoomend", onZoom);
     // Set initial visibility
@@ -443,7 +469,7 @@ const PipeMap = ({
                         <br />
                         {(pipe["PIPE_DIAMETER (mm)"] || pipe.diameter)}mm
                         <br />
-                        Installed: {installedDate || "Unknown"}
+                        Installed: {formatDate(installedDate)}
                       </div>
                     );
                     e.target.bindPopup(popupContent).openPopup();
@@ -456,7 +482,7 @@ const PipeMap = ({
                     <br />
                     Diameter: {(pipe["PIPE_DIAMETER (mm)"] || pipe.diameter)}mm
                     <br />
-                    Installed: {installedDate || "Unknown"}
+                    Installed: {formatDate(installedDate)}
                     <br />
                     Material: {(pipe.MATERIAL_TYPE || pipe.material) || "Unknown"}
                     {(pipe.ADDRESS || pipe.address) && (
@@ -491,7 +517,7 @@ const PipeMap = ({
                       borderRadius: "20px",
                     }}>
                       <strong>Break Date:</strong>{" "}
-                      {breakInfo.break_date.split("T")[0]} <br />
+                      {formatDate(breakInfo.break_date)} <br />
                       <strong>Break Type:</strong>
                       <br />
                       {breakInfo.break_type_desc &&
@@ -512,31 +538,21 @@ const PipeMap = ({
 
         {/* Render leak marker if provided */}
         {leakMarker && (
-          <Marker position={[leakMarker.lat, leakMarker.lng]}>
+          <Marker 
+            position={[leakMarker.lat, leakMarker.lng]} 
+            icon={leakMarker.iconType === 'redWaterDrop' ? redWaterDropIcon : waterDropIcon}
+          >
             <Popup>
-              <div style={{ ...addressStyle, textAlign: "center" }}>
-                {leakMarker.break_type && (
-                  <div style={{ marginBottom: "8px" }}>
-                    <strong>Break Type:</strong>
-                    <br />
-                    {leakMarker.break_type.split("").map((letter, i) => (
-                      <div key={i}>
-                        {letter} - {breakTypeDescriptions[letter] || "Unknown"}
-                      </div>
-                    ))}
-                  </div>
+              <div>
+                <h3>{leakMarker.message}</h3>
+                {leakMarker.specificLocation && (
+                  <p><strong>Repair Location:</strong> {leakMarker.specificLocation}</p>
                 )}
-                {leakMarker.address && (
-                  <div style={{ marginBottom: "8px" }}>
-                    <strong>Address:</strong><br />
-                    {leakMarker.address}
-                  </div>
+                <p><strong>Priority:</strong> {leakMarker.priority}</p>
+                <p><strong>Status:</strong> {leakMarker.status}</p>
+                {leakMarker.dateReported && (
+                  <p><strong>Date Reported:</strong> {formatDate(leakMarker.dateReported)}</p>
                 )}
-                <LeakReportForm
-                  address={leakMarker.address}
-                  coordinates={[leakMarker.lat, leakMarker.lng]}
-                  setLeakMarker={setLeakMarker}
-                />
               </div>
             </Popup>
           </Marker>
@@ -547,18 +563,12 @@ const PipeMap = ({
           <Marker position={selectedPipePosition}>
             <Popup>
               <div>
-                <strong>Selected Pipe</strong>
-                <br/>
-                {/* Add pipe details */}
-                {selectedPipe && (
-                  <div style={{ marginBottom: "10px" }}>
-                    <strong>Address:</strong> {selectedPipe.WATER_SERVICE_ADDRESS || selectedPipe.address || 'N/A'}<br/>
-                    <strong>Building Type:</strong> {selectedPipe.BUILDING_TYPE || selectedPipe.building_type || 'N/A'}<br/>
-                    <strong>Material:</strong> {selectedPipe.MATERIAL_TYPE || selectedPipe.material || 'N/A'}<br/>
-                    <strong>Diameter:</strong> {selectedPipe["PIPE_DIAMETER (mm)"] || selectedPipe.diameter || 'N/A'}mm<br/>
-                    <strong>Installed:</strong> {selectedPipe.INSTALLED_DATE || selectedPipe.installed_dt || 'Unknown'}
-                  </div>
-                )}
+                <h3>Pipe Details</h3>
+                <p><strong>Address:</strong> {selectedPipe.address || selectedPipe.WATER_SERVICE_ADDRESS || 'N/A'}</p>
+                <p><strong>Building Type:</strong> {selectedPipe.buildingType || selectedPipe.BUILDING_TYPE || 'N/A'}</p>
+                <p><strong>Material:</strong> {selectedPipe.material || selectedPipe.MATERIAL_TYPE || 'N/A'}</p>
+                <p><strong>Diameter:</strong> {selectedPipe.diameter || selectedPipe.PIPE_DIAMETER || selectedPipe["PIPE_DIAMETER (mm)"] || 'N/A'} mm</p>
+                <p><strong>Installed Date:</strong> {formatDate(selectedPipe.INSTALLED_DATE || selectedPipe.installedDate)}</p>
                 {/* Add LeakReportForm */}
                 <LeakReportForm
                   address={selectedPipe?.WATER_SERVICE_ADDRESS || selectedPipe?.address || `Location: ${selectedPipePosition[0].toFixed(6)}, ${selectedPipePosition[1].toFixed(6)}`}

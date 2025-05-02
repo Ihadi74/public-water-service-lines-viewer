@@ -2,21 +2,15 @@
 import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 import "./App.css";
-
-// Helper function to format the date to YYYY, MMM format
-function formatDate(dateString) {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = date.toLocaleString('en-US', { month: 'short' });
-  return `${year}, ${month}`;
-}
+import { formatDate } from "./utils/dateUtils";
 
 // Determine pipe age color based on installed date (matching PipeMap legend)
 const getAgeColor = (installedDate) => {
   if (!installedDate) return 'gray';
   const currentYear = new Date().getFullYear();
-  const installationYear = new Date(installedDate).getFullYear();
+  // Make sure we clean the date string before creating a new Date
+  const cleanDateString = installedDate.split('T')[0];
+  const installationYear = new Date(cleanDateString).getFullYear();
   const age = currentYear - installationYear;
   return age <= 10 ? 'green' : age <= 25 ? 'orange' : age <= 50 ? 'red' : 'gray';
 };
@@ -71,19 +65,19 @@ function DisplayRecords({
           border: "1px solid #ddd",
           borderRadius: "8px",
           position: "relative",
+          fontSize: "min(1.2vw, 16px)", // Auto-fit font size based on viewport width, max 16px
         }}
       >
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            fontSize: "16px",
-            tableLayout: "fixed" // Fixed layout ensures columns respect width settings
+            tableLayout: "fixed"
           }}
         >
           <colgroup>
             <col style={{ width: "20%" }} />
-            <col style={{ width: "30%" }} />
+            <col style={{ width: "30%" }} />  {/* Increased address column width */}
             <col style={{ width: "20%" }} />
             <col style={{ width: "10%" }} />
             <col style={{ width: "20%" }} />
@@ -91,7 +85,7 @@ function DisplayRecords({
           <thead>
             <tr>
               <th style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "8px" }}>Building Type</th>
-              <th style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "8px" }}>Address</th>
+              <th style={{ padding: "8px" }}>Address</th> {/* Removed nowrap for header */}
               <th style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "8px" }}>Material</th>
               <th style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "8px" }}>Diameter (mm)</th>
               <th style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "8px" }}>Installed Date</th>
@@ -99,42 +93,60 @@ function DisplayRecords({
           </thead>
           <tbody>
             {pipes.map((pipe, index) => {
-              // Get the age color for this pipe's installed date
               const ageColor = getAgeColor(pipe.INSTALLED_DATE || pipe.installedDate);
-              
               return (
                 <tr
                   key={index}
                   style={{
                     borderBottom: "1px solid #ddd",
                     cursor: "pointer",
-                    backgroundColor: selectedPipe === pipe ? "#eef" : "transparent",
-                    fontSize: "clamp(10px, 1vw, 16px)" // Responsive font size
+                    backgroundColor: selectedPipe === pipe ? "#eef" : "transparent"
                   }}
-                  onClick={() => {
-                    // On row click, update the selected pipe.
-                    setSelectedPipe(pipe);
-                  }}
+                  onClick={() => setSelectedPipe(pipe)}
                 >
-                  <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "6px" }}>
+                  <td style={{ 
+                    overflow: "hidden", 
+                    textOverflow: "ellipsis", 
+                    whiteSpace: "nowrap", 
+                    padding: "6px",
+                    fontSize: "1em" // Set font size to 1em
+                  }}>
                     {pipe.buildingType || pipe.BUILDING_TYPE || 'N/A'}
                   </td>
-                  <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "6px" }}>
+                  <td style={{ 
+                    padding: "6px", 
+                    whiteSpace: "normal", 
+                    wordBreak: "break-word", 
+                    height: "3em",   /* Allow space for two rows */
+                    verticalAlign: "top"  /* Align text to top */
+                  }}>
                     {pipe.address || pipe.WATER_SERVICE_ADDRESS || 'N/A'}
-                  </td>
-                  <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "6px" }}>
-                    {pipe.material || pipe.MATERIAL_TYPE || 'N/A'}
-                  </td>
-                  <td style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "6px" }}>
-                    {pipe.diameter || pipe.PIPE_DIAMETER || pipe["PIPE_DIAMETER (mm)"] || 'N/A'}
                   </td>
                   <td style={{ 
                     overflow: "hidden", 
                     textOverflow: "ellipsis", 
                     whiteSpace: "nowrap", 
                     padding: "6px",
+                    fontSize: "1em" // Set font size to 1em
+                  }}>
+                    {pipe.material || pipe.MATERIAL_TYPE || 'N/A'}
+                  </td>
+                  <td style={{ 
+                    overflow: "hidden", 
+                    textOverflow: "ellipsis", 
+                    whiteSpace: "nowrap", 
+                    padding: "6px" 
+                  }}>
+                    {pipe.diameter || pipe.PIPE_DIAMETER || pipe["PIPE_DIAMETER (mm)"] || 'N/A'}
+                  </td>
+                  <td style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    padding: "6px",
                     backgroundColor: ageColor,
-                    color: ageColor === 'green' ? 'black' : 'white' // Improve text visibility
+                    color: ageColor === 'green' ? 'black' : 'white',
+                    fontSize: "1em" // Set font size to 1em
                   }}>
                     {(pipe.INSTALLED_DATE || pipe.installedDate) ? formatDate(pipe.INSTALLED_DATE || pipe.installedDate) : 'N/A'}
                   </td>

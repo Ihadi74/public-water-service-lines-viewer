@@ -29,14 +29,11 @@ function Filters({
   };
 
   const handleAddressChange = (e) => {
-    // Remove the trim() here - it's removing spaces
-    const value = e.target.value; // Don't trim while typing
+    const value = e.target.value;
     setAddress(value);
     
-    // Only trim when setting the search value
-    if (value.trim().length > 0) {
-      setAddressSearch(value.trim());
-    }
+    // Always update addressSearch, even when empty
+    setAddressSearch(value.trim());
   };
 
   // Enhanced search function to geocode, place marker and center map
