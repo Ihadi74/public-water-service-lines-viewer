@@ -1,5 +1,6 @@
 // backend/services/scraper.js
 const puppeteer = require("puppeteer");
+const WaterOutage = require("../models/WaterOutage"); // Import the model
 
 async function scrapeWaterOutages() {
   try {
@@ -20,6 +21,7 @@ async function scrapeWaterOutages() {
     // Each outage entry is assumed to start with "Information |".
     const blocks = pageText.split("Information |").slice(1); // remove anything before the first entry
 
+    const currentTime = new Date();
     const outages = blocks.map(block => {
       block = block.trim();
       
@@ -27,11 +29,20 @@ async function scrapeWaterOutages() {
       // Expected format: "BRIDGELAND/RIVERSIDE community (updated April 29, 2025 11:34 AM)"
       let community = "";
       let updatedTime = "";
+      let updatedDate = null;
+      
       const communityRegex = /^([^\(]+)\s+community\s+\(updated\s+([^\)]+)\)/i;
       const communityMatch = block.match(communityRegex);
       if (communityMatch) {
         community = communityMatch[1].trim();
         updatedTime = communityMatch[2].trim();
+        
+        // Parse the date string (e.g., "April 29, 2025 11:34 AM")
+        try {
+          updatedDate = new Date(updatedTime);
+        } catch (e) {
+          console.warn(`Could not parse date: ${updatedTime}`);
+        }
       }
       
       // Extract Priority (e.g., "Priority: Emergency")
@@ -65,15 +76,53 @@ async function scrapeWaterOutages() {
       return {
         community,
         updatedTime,
+        updatedDate, // Store the actual date object
         priority, 
         currentStatus,
         repairLocation,
-        repairCompletion
+        repairCompletion,
+        // Add these fields for frontend compatibility
+        name: community,
+        scrapedAt: currentTime
       };
     });
 
-    console.log("Extracted outages:", outages);
-    return outages;
+    // Filter outages to keep only valid ones and within last 24 hours
+    const validOutages = outages.filter(o => {
+      // Must have a community name
+      if (!o.community || o.community.length === 0) return false;
+      
+      // If we have a valid date, check if it's within last 24 hours
+      if (o.updatedDate) {
+        const oneDayAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000);
+        return o.updatedDate >= oneDayAgo;
+      }
+      
+      // If we couldn't parse the date, keep it by default
+      return true;
+    });
+    
+    console.log(`Found ${outages.length} total outages, ${validOutages.length} are valid and within last 24 hours`);
+    
+    if (validOutages.length > 0) {
+      try {
+        // First delete old records to prevent duplication
+        const deleteResult = await WaterOutage.deleteMany({});
+        console.log(`Deleted ${deleteResult.deletedCount} old records`);
+        
+        // Then insert the new ones (remove the temporary updatedDate field)
+        const outagesForDB = validOutages.map(({updatedDate, ...rest}) => rest);
+        const insertResult = await WaterOutage.insertMany(outagesForDB);
+        console.log(`Saved ${insertResult.length} outages to database`);
+      } catch (dbError) {
+        console.error("Database operation failed:", dbError);
+        // Continue execution, don't throw - we want the scheduler to keep running
+      }
+    } else {
+      console.log("No valid recent outages found to save");
+    }
+
+    return validOutages;
   } catch (error) {
     console.error("Error fetching water outage data:", error);
     return [];

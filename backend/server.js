@@ -8,6 +8,7 @@ require("dotenv").config();
 const pipeRoutes = require("./routes/pipes");
 const waterOutageRoute = require("./routes/waterOutage");
 const scrapeWaterOutages = require("./services/scraper");
+const scraperScheduler = require('./services/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -30,6 +31,10 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
+    
+    // Start the scheduler for auto-scraping
+    scraperScheduler.start();
+    
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
