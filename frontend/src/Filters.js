@@ -11,32 +11,31 @@ function Filters({
   setLeakMarker,
   setMapCenter,
 }) {
-  const styleFilters = {
-    display: "flex",
-    gap: "20px",
-    margin: "20px",
-    alignItems: "center",
-    flexWrap: "wrap",
-  };
-
+  // Update the selectStyle to match input heights
   const selectStyle = {
     padding: "6px 10px",
     borderRadius: "4px",
     border: "1px solid #ccc",
+    height: "38px", // Fixed height
+    boxSizing: "border-box" // Include padding in height calculation
   };
 
   const inputStyle = {
     padding: "6px 10px",
     borderRadius: "4px",
     border: "1px solid #ccc",
-    minWidth: "200px",
+    height: "38px", // Same fixed height
+    boxSizing: "border-box" // Include padding in height calculation
   };
 
   const handleAddressChange = (e) => {
-    const value = e.target.value.trim();
+    // Remove the trim() here - it's removing spaces
+    const value = e.target.value; // Don't trim while typing
     setAddress(value);
-    if (value.length > 0) {
-      setAddressSearch(value);
+    
+    // Only trim when setting the search value
+    if (value.trim().length > 0) {
+      setAddressSearch(value.trim());
     }
   };
 
@@ -90,12 +89,36 @@ function Filters({
   };
 
   return (
-    <div style={styleFilters}>
+    <div style={{
+      display: "flex",
+      gap: "15px",
+      margin: "20px 0", // Remove horizontal margins
+      padding: "15px",
+      alignItems: "flex-end",
+      flexWrap: "nowrap",
+      width: "100%",
+      boxSizing: "border-box",
+      backgroundColor: "#f5f5f5", // Light grey background
+      borderRadius: "8px"
+    }}>
       {/* Building Type Filter */}
-      <label>
-        Building Type:{" "}
+      <div style={{ 
+        width: "20%",
+        backgroundColor: "#e0e0e0", // Added grey background
+        padding: "10px",
+        borderRadius: "6px",
+        boxSizing: "border-box"
+      }}>
+        <label style={{ 
+          display: "block", 
+          marginBottom: "6px", 
+          fontSize: "1.5em",
+          fontWeight: "bold"
+        }}>
+          Building Type
+        </label>
         <select
-          style={selectStyle}
+          style={{...selectStyle, width: "100%", maxWidth: "100%" }}
           onChange={(e) => setBuildingType(e.target.value)}
         >
           <option value="">All</option>
@@ -104,12 +127,26 @@ function Filters({
           <option value="Duplex">Duplex</option>
           <option value="Commercial">Commercial</option>
         </select>
-      </label>
+      </div>
 
-      <label>
-        Material Type:{" "}
+      {/* Material Type Filter */}
+      <div style={{ 
+        width: "26%",  // Increased slightly from 25%
+        backgroundColor: "#e0e0e0", 
+        padding: "10px",
+        borderRadius: "6px",
+        boxSizing: "border-box"
+      }}>
+        <label style={{ 
+          display: "block", 
+          marginBottom: "6px", 
+          fontSize: "1.5em",
+          fontWeight: "bold"
+        }}>
+          Material Type
+        </label>
         <select
-          style={selectStyle}
+          style={{...selectStyle, width: "100%", maxWidth: "100%" }}
           onChange={(e) => setMaterialType(e.target.value)}
         >
           <option value="">All</option>
@@ -119,24 +156,57 @@ function Filters({
           </option>
           <option value="Lead">Lead</option>
         </select>
-      </label>
+      </div>
 
-      {/* Address Filter */}
-      <label>
-        Address Search:{" "}
-        <input
-          type="text"
-          placeholder="Enter address"
-          value={address}
-          onChange={handleAddressChange}
-          style={inputStyle}
-        />
-      </label>
-
-      {/* Search Button - Use the enhanced search function */}
-      <button onClick={handleEnhancedSearch} style={{ padding: "6px 12px" }}>
-        Search
-      </button>
+      {/* Address Filter with integrated search button */}
+      <div style={{ 
+        width: "49%",  // Increased from 42% to fill remaining space
+        backgroundColor: "#e0e0e0", 
+        padding: "10px",
+        borderRadius: "6px",
+        boxSizing: "border-box"
+      }}>
+        <label style={{ 
+          display: "block", 
+          marginBottom: "6px", 
+          fontSize: "1.5em",
+          fontWeight: "bold"
+        }}>
+          Address Search
+        </label>
+        <div style={{ position: "relative", width: "100%" }}>
+          <input
+            type="text"
+            placeholder="Enter address"
+            value={address}
+            onChange={handleAddressChange}
+            onKeyPress={(e) => e.key === 'Enter' && handleEnhancedSearch()}
+            style={{
+              ...inputStyle, 
+              width: "100%",
+              paddingRight: "40px"
+            }}
+          />
+          <button 
+            onClick={handleEnhancedSearch}
+            style={{
+              position: "absolute",
+              right: "4px",
+              top: "4px",
+              bottom: "4px",
+              padding: "0 10px",
+              borderRadius: "4px",
+              backgroundColor: "#0078d7",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+              whiteSpace: "nowrap"
+            }}
+          >
+            🔍
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -102,24 +102,32 @@ function WaterOutageAlert({ map = null, id = "unknown" }) {
      return null;
   }
 
-  // Main component rendering - SCROLLABLE ROW WITH RED BACKGROUND AND BLACK BORDER
+  // Main component rendering - make it sticky at bottom of page content
   return (
     <div style={{
-        position: 'relative',
-        width: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: '12px 16px',
-     }}>
-      {/* Alert Banner */}
+      position: 'sticky', // Keep sticky positioning
+      bottom: 0,
+      width: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      padding: '18px 16px 10px 16px', // Reduced bottom padding
+      boxShadow: '0 -2px 8px rgba(0,0,0,0.2)',
+      zIndex: 1000,
+      height: 'auto', // Auto height instead of maxHeight
+      overflow: 'hidden', // Hide all overflow
+      marginTop: '20px',
+      boxSizing: 'border-box' // Add this to include padding in width calculation
+    }}>
+      {/* Alert Banner - no changes needed here */}
       <div
         onClick={handleAlertBoxClick}
         style={{ 
           cursor: outages.length > 0 ? "pointer" : "default", 
-          borderBottom: '1px solid #000', // Black border at bottom
-          marginBottom: '10px', 
-          paddingBottom: '8px',
+          borderBottom: '1px solid #000',
+          marginBottom: '12px',
+          paddingBottom: '10px',
           display: 'flex',
-          alignItems: 'center'
+          alignItems: 'center',
+          fontSize: '1.05em'
         }}
         title={outages.length > 0 ? "Click to center map on the first alert" : "Water Break Alert"}
       >
@@ -129,54 +137,57 @@ function WaterOutageAlert({ map = null, id = "unknown" }) {
         </span>
       </div>
 
-      {/* Outage Details Section - SCROLLABLE ROW WITH RED BACKGROUND AND BLACK BORDER */}
+      {/* Outage Details Section - Update container to ensure proper containment */}
       {outages.length > 0 && (
         <div style={{ 
           display: "flex", 
           flexDirection: "row", 
           flexWrap: "nowrap", 
-          gap: "12px", // Increased spacing between cards
-          width: "max-content", // Allow container to grow beyond parent width
-          minWidth: "100%", // At minimum, take up full parent width
+          gap: "12px",
+          width: "100%", // Set to 100% instead of max-content
+          paddingBottom: '15px',
+          overflowX: 'auto', // Horizontal scroll only
+          overflowY: 'hidden' // Prevent vertical scroll inside this container
         }}>
           {outages.map((outage, index) => (
             <div
               key={outage._id || `${outage.community || outage.name || 'unknown'}-${index}`}
               onClick={() => handleOutageClick(outage)}
               style={{ 
-                border: "1px solid #000", // Black border
+                border: "1px solid #000",
                 borderRadius: '4px', 
-                padding: "12px", // Increased padding
+                padding: "14px",
                 cursor: "pointer", 
                 flex: "0 0 auto",
-                width: "200px", // Fixed width for each card
-                backgroundColor: '#ffdddd', // Light red background
-                fontSize: '0.9em',
-                height: '120px', // Fixed height
+                width: "220px",
+                backgroundColor: '#ffdddd',
+                fontSize: '0.95em',
+                height: '150px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.15)' // Subtle shadow for depth
+                boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                overflow: 'hidden' // Add this to contain text inside cards
               }}
               title={`Click to center map on ${outage.community || outage.name || 'this location'}`}
             >
               <h4 style={{ 
                 margin: 0, 
-                marginBottom: '5px',
-                fontSize: '1em',
+                marginBottom: '8px', // Increased from 5px to 8px
+                fontSize: '1.1em', // Increased from 1em to 1.1em
                 color: '#800000', // Darker red for heading
                 fontWeight: 'bold'
               }}>
                 {outage.community || outage.name || 'Unknown Location'}
               </h4>
               <div style={{flex: '1 0 auto'}}>
-                <p style={{ margin: "3px 0" }}>
+                <p style={{ margin: "5px 0" }}> {/* Increased from 3px to 5px */}
                   <strong>Updated:</strong> {outage.updatedTime || 'N/A'}
                 </p>
-                <p style={{ margin: "3px 0" }}>
+                <p style={{ margin: "5px 0" }}>
                   <strong>Priority:</strong> {outage.priority || 'N/A'}
                 </p>
-                <p style={{ margin: "3px 0" }}>
+                <p style={{ margin: "5px 0" }}>
                   <strong>Status:</strong> {outage.currentStatus || 'N/A'}
                 </p>
               </div>
