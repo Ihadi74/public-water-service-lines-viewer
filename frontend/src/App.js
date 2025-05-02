@@ -5,7 +5,7 @@ import Filters from './Filters';
 import PipeMap from './PipeMap';
 import DisplayRecords from './DisplayRecords';
 import NotificationButton from './NotificationButton';
-import WaterOutageAlert from './WaterOutageAlert';
+import WaterOutageAlert from './WaterOutageAlert'; // Import WaterOutageAlert
 
 function App() {
   // State variables for filters and data management
@@ -16,6 +16,9 @@ function App() {
   const [address, setAddress] = useState("");
   const [leakMarker, setLeakMarker] = useState(null);
   const [selectedPipe, setSelectedPipe] = useState(null);
+  
+  // Add state for map instance
+  const [mapInstance, setMapInstance] = useState(null);
 
   // Handler for triggering an address search
   const handleSearchAddress = () => {
@@ -48,7 +51,7 @@ function App() {
   }, [buildingType, materialType, addressSearch]);
 
   return (
-    <div>
+    <div style={{ maxWidth: '100%', overflowX: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header and Filters */}
       <Header
         buildingType={buildingType}
@@ -72,10 +75,16 @@ function App() {
           gap: "20px",
           padding: "20px",
           justifyContent: "space-between",
+          maxWidth: "100%",
+          flex: "1 0 auto", // Allow this area to grow but not shrink
         }}
       >
         {/* Pipe Map */}
-        <div style={{ flex: "1 1 50%", minWidth: "40%" }}>
+        <div style={{ 
+          flex: "1 1 50%", 
+          minWidth: "300px",
+          maxWidth: "100%"
+        }}>
           <PipeMap
             pipes={pipes}
             leakMarker={leakMarker}
@@ -83,11 +92,18 @@ function App() {
             address={address}
             selectedPipe={selectedPipe}
             setSelectedPipe={setSelectedPipe}
+            setMapInstance={setMapInstance} // Pass the setter function
           />
         </div>
 
         {/* Display Records */}
-        <div style={{ flex: "1 1 45%", overflowY: "auto" }}>
+        <div style={{ 
+          flex: "1 1 45%", 
+          minWidth: "300px",
+          maxWidth: "100%",
+          overflowY: "auto",
+          overflowX: "hidden"
+        }}>
           <DisplayRecords
             buildingType={buildingType}
             materialType={materialType}
@@ -101,16 +117,23 @@ function App() {
         <NotificationButton />
       </div>
 
-      {/* Water Outage Alert Section */}
-      <div
-        style={{
-          padding: "20px",
-          borderTop: "1px solid #ccc",
-          marginTop: "20px",
-        }}
-      >
-        <WaterOutageAlert />
-      </div>
+      {/* Water Outage Alert - scrollable width */}
+      {mapInstance && (
+        <div style={{ 
+          width: '100%',
+          padding: '0',
+          marginTop: 'auto',
+          borderTop: '1px solid #ccc',
+          backgroundColor: '#f8f8f8',
+          height: 'auto',
+          minHeight: '150px', // Set a minimum height
+          maxHeight: '180px', // Set a maximum height
+          overflowX: 'auto', // Enable horizontal scrolling
+          overflowY: 'hidden' // Prevent vertical scrolling
+        }}>
+          <WaterOutageAlert map={mapInstance} id="page-alert" />
+        </div>
+      )}
     </div>
   );
 }
