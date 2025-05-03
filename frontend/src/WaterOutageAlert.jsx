@@ -168,7 +168,7 @@ function WaterOutageAlert({ map = null, id = "unknown", setLeakMarker, setMapCen
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       padding: '18px 16px 10px 16px', // Reduced bottom padding
       boxShadow: '0 -2px 8px rgba(0,0,0,0.2)',
-      zIndex: 1000,
+      zIndex: 10,
       height: 'auto', // Auto height instead of maxHeight
       overflow: 'hidden', // Hide all overflow
       marginTop: '20px',

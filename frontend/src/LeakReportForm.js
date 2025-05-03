@@ -1,6 +1,5 @@
-
 // components/LeakReportForm.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const LeakReportForm = ({
@@ -13,8 +12,17 @@ const LeakReportForm = ({
   const [email, setEmail] = useState("");
   const [contact, setContact] = useState("");
   const [description, setDescription] = useState("");
+  const [formAddress, setFormAddress] = useState("");
+  const [isGpsLocation, setIsGpsLocation] = useState(false);
+  
+  // Use effect to autofill address when coordinates are available
+  useEffect(() => {
+    if (coordinates && coordinates.lat && coordinates.lng) {
+      setFormAddress(address || "");
+      setIsGpsLocation(true);
+    }
+  }, [coordinates, address]);
 
- 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -23,24 +31,25 @@ const LeakReportForm = ({
       email,
       contact,
       description,
-      address,
+      address: formAddress || address, // Use the form address if available
     };
 
-       try {
-         await axios.post(
-      "http://localhost:5001/api/leak-report",
-      formData,
-      {
-        headers: {
-          "Content-Type": "application/json", // Optional, depending on your backend
-        },
-      }
-    );
+    try {
+      await axios.post(
+        "http://localhost:5001/api/leak-report",
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       alert("Report submitted successfully!");
       setName("");
       setEmail("");
       setContact("");
       setDescription("");
+      setFormAddress("");
     } catch (err) {
       console.error("Failed to submit leak report:", err);
       alert("Failed to send report. Please try again later.");
@@ -83,6 +92,21 @@ const LeakReportForm = ({
           onChange={(e) => setContact(e.target.value)}
           style={styles.input}
         />
+        
+        <label style={styles.label}>Address</label>
+        <input
+          type="text"
+          placeholder="Enter address"
+          required
+          value={formAddress}
+          onChange={(e) => setFormAddress(e.target.value)}
+          style={{...styles.input, backgroundColor: isGpsLocation ? '#e8f4ff' : 'white'}}
+        />
+        {isGpsLocation && (
+          <small style={{marginTop: -10, marginBottom: 10, color: '#0077cc'}}>
+            Address auto-filled from GPS location
+          </small>
+        )}
 
         <label style={styles.label}>Description of the Leak</label>
         <textarea
