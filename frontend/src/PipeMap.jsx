@@ -1,15 +1,16 @@
 // PipeMap.jsx
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, Tooltip, } from 'react-leaflet';
-import L from 'leaflet';
+import L, { divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
-import ReactDOMServer from 'react-dom/server';
+import ReactDOMServer, { renderToString } from 'react-dom/server';
 import LeakReportForm from './LeakReportForm';
 import Pressure from './Pressure';
 import { createRoot } from 'react-dom/client';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
-import { formatDate } from "./utils/dateUtils";
+import { formatDate as formatDateUtil } from "./utils/dateUtils";
+import EmergencyShareIcon from '@mui/icons-material/EmergencyShare';
 
 // --- CONFIGURATION & UTILITY FUNCTIONS ---
 const breakTypeDescriptions = { A: 'Full Circular', B: 'Split', C: 'Corrosion', D: 'Fitting', E: 'Joint', F: 'Diagonal Crack', G: 'Hole', S: 'Saddle' };
@@ -129,6 +130,32 @@ const createWaterdropIcon = () => {
 };
 
 const waterDropIcon = createWaterdropIcon();
+
+// Inside your PipeMap component, add this function to create a Material UI icon for leaflet
+const createEmergencyShareIcon = () => {
+  const iconHtml = renderToString(
+    <div style={{ 
+      color: '#e74c3c', 
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '40px',
+      height: '40px',
+      background: 'white',
+      borderRadius: '50%',
+      border: '2px solid #e74c3c'
+    }}>
+      <EmergencyShareIcon fontSize="medium" />
+    </div>
+  );
+  
+  return divIcon({
+    html: iconHtml,
+    className: '',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+  });
+};
 
 // --- HELPER COMPONENTS ---
 class ErrorBoundary extends React.Component {
@@ -322,7 +349,9 @@ const PipeMap = ({
   leakMarker,
   setLeakMarker,
   mapCenter,
+  setMapCenter, // Add this prop
   setMapInstance = () => {},
+  formatDate = formatDateUtil // Default to the imported function if prop isn't provided
 }) => {
   const [waterBreaks, setWaterBreaks] = useState([]);
   const [polygonData, setPolygonData] = useState([]);
@@ -540,20 +569,28 @@ const PipeMap = ({
         {leakMarker && (
           <Marker 
             position={[leakMarker.lat, leakMarker.lng]} 
-            icon={leakMarker.iconType === 'redWaterDrop' ? redWaterDropIcon : waterDropIcon}
+            icon={
+              leakMarker.iconType === 'redWaterDrop' ? redWaterDropIcon : 
+              leakMarker.iconType === 'emergencyShare' ? createEmergencyShareIcon() : 
+              waterDropIcon
+            }
           >
             <Popup>
-              <div>
-                <h3>{leakMarker.message}</h3>
-                {leakMarker.specificLocation && (
-                  <p><strong>Repair Location:</strong> {leakMarker.specificLocation}</p>
-                )}
-                <p><strong>Priority:</strong> {leakMarker.priority}</p>
-                <p><strong>Status:</strong> {leakMarker.status}</p>
-                {leakMarker.dateReported && (
-                  <p><strong>Date Reported:</strong> {formatDate(leakMarker.dateReported)}</p>
-                )}
-              </div>
+              {leakMarker.showLeakReportForm ? (
+                <LeakReportForm 
+                  address={leakMarker.address || leakMarker.formProps?.address}
+                  coordinates={leakMarker.formProps?.coordinates}
+                  setLeakMarker={setLeakMarker}
+                  setMapCenter={setMapCenter} // Now setMapCenter is properly passed
+                />
+              ) : (
+                <div>
+                  <h3>{leakMarker.message || "Water Issue"}</h3>
+                  {leakMarker.priority && <p><strong>Priority:</strong> {leakMarker.priority}</p>}
+                  {leakMarker.status && <p><strong>Status:</strong> {leakMarker.status}</p>}
+                  {leakMarker.specificLocation && <p><strong>Location:</strong> {leakMarker.specificLocation}</p>}
+                </div>
+              )}
             </Popup>
           </Marker>
         )}

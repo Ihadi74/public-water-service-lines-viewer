@@ -72,12 +72,14 @@ function App() {
       overflow: 'hidden',
       boxSizing: 'border-box'
     }}>
-      {/* Header and Filters */}
+      {/* Header */}
       <Header
         buildingType={buildingType}
         materialType={materialType}
         addressSearch={addressSearch}
       />
+      
+      {/* Filters */}
       <Filters
         setBuildingType={setBuildingType}
         setMaterialType={setMaterialType}
@@ -122,6 +124,7 @@ function App() {
             setSelectedPipe={setSelectedPipe}
             setMapInstance={setMapInstance}
             mapCenter={mapCenter}
+            setMapCenter={setMapCenter}
             formatDate={formatDate} // Add this line
           />
         </div>
@@ -146,9 +149,19 @@ function App() {
             setSelectedPipe={setSelectedPipe}
           />
         </div>
+      </div>
 
-        {/* Notification Button */}
-        <NotificationButton />
+      {/* Add NotificationButton as a floating button */}
+      <div style={{ 
+        position: 'fixed', 
+        bottom: '20px', 
+        right: '20px', 
+        zIndex: 1000 
+      }}>
+        <NotificationButton 
+          setLeakMarker={setLeakMarker} 
+          setMapCenter={setMapCenter} 
+        />
       </div>
 
       {/* Water Outage Alert - sticky footer */}
