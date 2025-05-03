@@ -357,6 +357,8 @@ const PipeMap = ({
   const [polygonData, setPolygonData] = useState([]);
   const [showMarkers, setShowMarkers] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [waterOutageAlerts, setWaterOutageAlerts] = useState([]); // State for water outage alerts
+  const [communityData, setCommunityData] = useState([]); // State for community data for coordinate lookup
 
   // Use container styles directly in component rendering
   const containerStyle = { position: 'relative' };
@@ -375,22 +377,29 @@ const PipeMap = ({
     setLoading(false);
   }, []);
 
-  // Fetch additional water break and pressure polygon data
+  // Fetch additional water break, pressure polygon, water outage, and community data
   useEffect(() => {
     let isMounted = true;
     const fetchAdditionalData = async () => {
+      setLoading(true); // Start loading indicator
       try {
-        const [res1, res2] = await Promise.all([
-          fetch("https://data.calgary.ca/resource/dpcu-jr23.json"),
-          fetch("https://data.calgary.ca/resource/xn3q-y49u.json")
+        const [res1, res2, res3, res4] = await Promise.all([
+          fetch("https://data.calgary.ca/resource/dpcu-jr23.json"), // Water Breaks
+          fetch("https://data.calgary.ca/resource/xn3q-y49u.json"), // Pressure Polygons
+          fetch("/api/wateroutage"), // Water Outages (Corrected endpoint)
+          fetch("https://data.calgary.ca/resource/j9ps-fyst.json") // Community Data for coordinates
         ]);
-        const [waterBreaksData, pressureData] = await Promise.all([
-          res1.json(),
-          res2.json()
-        ]);
+
+        const waterBreaksData = await res1.json();
+        const pressureData = await res2.json();
+        const waterOutageResponse = await res3.json(); // Expect { content: ..., outages: [...] }
+        const communities = await res4.json();
+
         if (isMounted) {
+          // Process Water Breaks
           setWaterBreaks(
             waterBreaksData.map((b) => {
+              // ... (existing water break processing logic) ...
               const breakTypeStr = b.break_type || "";
               const breakTypeDesc = breakTypeStr.split("").map(
                 (letter) =>
@@ -407,21 +416,58 @@ const PipeMap = ({
               };
             })
           );
+          // Set Pressure Polygons
           setPolygonData(pressureData);
+          // Set Water Outages
+          setWaterOutageAlerts(Array.isArray(waterOutageResponse?.outages) ? waterOutageResponse.outages : []);
+          // Set Community Data
+          setCommunityData(communities);
         }
       } catch (err) {
-        console.error("Failed to fetch water break data:", err);
+        console.error("Failed to fetch map data:", err);
+      } finally {
+        if (isMounted) {
+          setLoading(false); // Stop loading indicator
+        }
       }
     };
     fetchAdditionalData();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, []); // Fetch only on mount
+
+  // Helper function to get coordinates for an outage (adapted from WaterOutageAlert)
+  const getOutageCoordinates = useCallback((outage) => {
+    if (!outage || communityData.length === 0) return null;
+
+    const communityName = outage.community || outage.name;
+    if (!communityName) return null;
+
+    const record = communityData.find(rec => rec.name && rec.name.toLowerCase() === communityName.toLowerCase());
+
+    if (record) {
+      // Try point coordinates first
+      if (record.point?.coordinates?.length === 2) {
+        const lat = parseFloat(record.point.coordinates[1]);
+        const lng = parseFloat(record.point.coordinates[0]);
+        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      }
+      // Fallback to latitude/longitude fields
+      else if (record.latitude && record.longitude) {
+        const lat = parseFloat(record.latitude);
+        const lng = parseFloat(record.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      }
+    }
+    console.warn(`Coordinates not found for community: ${communityName}`);
+    return null; // No coordinates found
+  }, [communityData]);
+
 
   // Render loading indicator conditionally
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Loading Map Data...</div>;
   }
 
   // Determine the selected pipe's position for a marker
@@ -437,6 +483,8 @@ const PipeMap = ({
       if (coords.length) selectedPipePosition = coords[0];
     }
   }
+
+  const emergencyIcon = createEmergencyShareIcon(); // Create the icon instance once
 
   return (
     <div style={containerStyle}>
@@ -564,6 +612,33 @@ const PipeMap = ({
                 </Marker>
               ) : null
             )}
+
+        {/* Render water outage alert markers (always visible) */}
+        {Array.isArray(waterOutageAlerts) && waterOutageAlerts.map((outage, index) => {
+          const coords = getOutageCoordinates(outage);
+          if (!coords) return null; // Skip if no coordinates found
+
+          return (
+            <Marker
+              key={`outage-${outage._id || index}`} // Use outage ID or index
+              position={[coords.lat, coords.lng]}
+              icon={redWaterDropIcon} // Use red icon for outages
+            >
+              <Popup>
+                <div>
+                  <h3>Water Outage</h3>
+                  <p><strong>Community:</strong> {outage.community || 'N/A'}</p>
+                  <p><strong>Status:</strong> {outage.currentStatus || 'N/A'}</p>
+                  <p><strong>Priority:</strong> {outage.priority || 'N/A'}</p>
+                  <p><strong>Updated:</strong> {outage.updatedTime || 'N/A'}</p>
+                  {outage.repairLocation && <p><strong>Location:</strong> {outage.repairLocation}</p>}
+                  {outage.repairCompletion && <p><strong>Est. Completion:</strong> {outage.repairCompletion}</p>}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
 
         {/* Render leak marker if provided */}
         {leakMarker && (

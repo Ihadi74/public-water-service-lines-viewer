@@ -169,7 +169,6 @@ function App() {
         <WaterOutageAlert 
           map={mapInstance} 
           id="page-alert" 
-          setLeakMarker={setLeakMarker}
           setMapCenter={setMapCenter}
         />
       )}
